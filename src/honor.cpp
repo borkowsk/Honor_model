@@ -166,7 +166,6 @@ new OptionalParameter<FLOAT>(POLICE_EFFIC,0,1,"POLICEEF","Probability of efficie
 new OptionalParameter<FLOAT>(BULLI_POPUL,0,1,"BULLYPR","Initial probability to born as bully agent"),//=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk³ad sterowany BULLISM_LIMIT ("-" jest sygna³em zafiksowania w trybie batch
 new OptionalParameter<FLOAT>(HONOR_POPUL,0,1,"HONORPR","Initial probability to born as honor agent"),//=0.18;//0.3333;//Jaka czêœæ agentów populacji jest œciœle honorowa
 //BULLYPR=0.33   HONORPR=0.33
-
 new OptionalParameter<bool>(ONLY3STRAT,false,true,"CALLPOLISREST","Is police callers the last strategies?"
 																	"\n\t\tIf not the rational strategies take the rest to 100%"),
 new OptionalParameter<FLOAT>(CALLER_POPU,0,1,"CALLPRP","Initial probability to born as police caller"),//=0.25;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
