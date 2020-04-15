@@ -124,9 +124,10 @@ void HonorAgent::RandomReset()
 			 Honor=(DRAND()*(1-fabs(BULLI_POPUL)) < fabs(HONOR_POPUL)? 1 : 0 ); //Jest HONOROWY albo nie jest
 			 if(Honor!=1)   //NIE AGRESYWNY i NIE HONOROWY
 			 {              //policyjny albo racjonalny - mog³oby byæ CallPolice=1 i w ten sposób znikaj¹ RACJONALNI (czwarta strategia)
-			   CallPolice=(DRAND()*(1-fabs(BULLI_POPUL)-fabs(HONOR_POPUL)) < fabs(CALLER_POPU)? 1 : 0); //Jest albo nie ma
-			   if(ONLY3STRAT && CallPolice==0) //Racjonalni "zabijani"!
-					this->Power=0;
+			   if(ONLY3STRAT)
+					CallPolice=(DRAND()*(1-fabs(BULLI_POPUL)-fabs(HONOR_POPUL)) < fabs(CALLER_POPU)? 1 : 0); //Jest albo nie ma
+			   else
+					CallPolice=1;
 			 }
 			 else
 			 {
@@ -227,7 +228,8 @@ void      HonorAgent::lost_power(double delta)
 {                                  					assert(Power<=1);
 	 delta=fabs(delta);
 	 Power*=(1-delta);             					//assert(Power>0);
-	 if(Power<0) Power=0;
+	 if(Power<0)
+		Power=0;     //Czy to siê w ogóle zdarza?
 }
 
 HonorAgent::Decision  HonorAgent::check_partner(unsigned& x,unsigned& y)
