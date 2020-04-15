@@ -16,7 +16,9 @@ using namespace wbrtm;
 using namespace std;
 
 bool 	HonorAgent::CzyTorus=false; //Czy geometria torusa czy wyspy z brzegami
+
 unsigned HonorAgent::licznik_zyc=0;//Do tworzenia unikalnych identyfikatorów agentów
+
 wb_dynmatrix<HonorAgent> HonorAgent::World;//Ca³y œwiat agentów - wspólny
 
 //Pomocnicze metody i akcesory agentów
@@ -53,7 +55,8 @@ bool HonorAgent::getNeigh(unsigned i,unsigned& x,unsigned& y) const
    else return false;
 }
 
-const HonorAgent::LinkTo* HonorAgent::Neigh(unsigned i)//Wspó³rzêdne kolejnego s¹siada
+const HonorAgent::LinkTo* HonorAgent::Neigh(unsigned i)
+//Wspó³rzêdne kolejnego s¹siada
 {
   if(i<HowManyNeigh)
 		return &Neighbourhood[i];
@@ -63,7 +66,7 @@ const HonorAgent::LinkTo* HonorAgent::Neigh(unsigned i)//Wspó³rzêdne kolejnego s
 bool HonorAgent::addNeigh(unsigned x,unsigned y)
 //Dodaje sasiada o okreslonych wspó³rzêdnych w œwiecie
 {
-   if(HowManyNeigh<Neighbourhood.get_size()) //Jest jeszcze miejsce
+   if(HowManyNeigh<Neighbourhood.get_size()) //Czy jest jeszcze miejsce wokó³?
    {
 	Neighbourhood[HowManyNeigh].X=x;
 	Neighbourhood[HowManyNeigh].Y=y;
@@ -76,13 +79,18 @@ bool HonorAgent::addNeigh(unsigned x,unsigned y)
 void HonorAgent::RandomReset()
 //Losowanie wartoœci atrubutów
 {
-		ID=++licznik_zyc;
+		this->ID=++licznik_zyc;
+		this->HisActions.Reset();
+		this->HisLifeTime=0;
+
 		PowLimit=(DRAND()+DRAND()+DRAND()+DRAND()+DRAND()+DRAND())/6;  // Jak¹ si³ê mo¿e osi¹gn¹æ maksymalnie, gdy nie traci
-		Power=(0.5+DRAND()*0.5)*PowLimit; //	Si³a (0..inf)
-		HonorFeiRep=Power;//DRAND()*0.5;  //Reputacja obrony jako „wêdrowna œrednia” z konfrontacji
+		Power=(0.5+DRAND()*0.5)*PowLimit; //  zawsze przynajmniej 0.5 limitu si³y
+		HonorFeiRep=Power;//DRAND()*Power, a kiedyœ by³o te¿ DRAND()*0.5 te¿. Potem uproszczone do Power;  //Reputacja wojownika wygl¹du i z realnych konfrontacji
 													assert(0<=HonorFeiRep);
 													assert(HonorFeiRep<=1);
 /*
+		// Wartoœci w Agres, Honor, CallPolice s¹ prawdopodobieñstwami innymi ni¿ 0 i 1 - WARIANT PORZUCONY NA RAZIE (?)
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		if(BULLI_POPUL<1)
 		{
 		  Agres=(DRAND()<BULLI_POPUL?1:0); //Albo jest albo nie jest
@@ -103,16 +111,20 @@ void HonorAgent::RandomReset()
 			else
 			CallPolice=0;
 */
-		if(fabs(BULLI_POPUL)<1) //
+		//Agres, Honor, CallPolice alternatywnie, ale czli jeden z prawdopodobieñstwem 1 a reszta 0.   WA¯NE UPROSZCZENIE!
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+																				assert(fabs(BULLI_POPUL)<1);
+		if(fabs(BULLI_POPUL)<1) // Oczywiœcie ma sens tylko wtedy  - jak 1 to sami agresywni - ALE NIGDYTAK NIE ROBIMY!
 		{
 		   Honor=0;CallPolice=0;//Wartoœci domyœlne dla agresywnych i wzywaj¹cych policje
+
 		   Agres=(DRAND()<fabs(BULLI_POPUL)?1:0); //Albo jest albo nie jest
 		   if(Agres!=1)
 		   {
-			 Honor=(DRAND()*(1-fabs(BULLI_POPUL)) < fabs(HONOR_POPUL)?1:0);
+			 Honor=(DRAND()*(1-fabs(BULLI_POPUL)) < fabs(HONOR_POPUL)? 1 : 0 ); //Jest albo nie ma
 			 if(Honor!=1)
 			 {
-			   CallPolice=(DRAND()*(1-fabs(BULLI_POPUL)-fabs(HONOR_POPUL)) < fabs(CALLER_POPU)?1:0);
+			   CallPolice=(DRAND()*(1-fabs(BULLI_POPUL)-fabs(HONOR_POPUL)) < fabs(CALLER_POPU)? 1 : 0); //Jest albo nie ma
 			 }
 			 else
 			 {
@@ -124,25 +136,25 @@ void HonorAgent::RandomReset()
 
 bool      HonorAgent::firstWin(HonorAgent& In,HonorAgent& Ho)
 //Ustala czy pierwszy czy drugi agent zwyciê¿y³ w konfrontacji
-//Zawsze któryœ musi zwyciê¿yæ, co znowu nie jest realistyczne
-{                                                           ;
+//Zawsze któryœ musi zwyciê¿yæ, co nie jest realistyczne - WA¯NE UPROSZCZENIE
+{
 	if( In.Power*(1+DRAND())  >  Ho.Power*(1+DRAND()) )
 			return true;
 			else
 			return false;
 }
 
-bool    HonorAgent::IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int MaxLevel)//2
-//Czy inny "nale¿y do rodziny"
-//Przy okazji sprawdzenia ustalamy "Ojca chrzestnego" na poŸniej
+bool    HonorAgent::IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int MaxLevel)//=2
+//Czy ten "Inny" nale¿y do "rodziny" danego agenta
+//Przy okazji sprawdzenia ustalamy "Ojca chrzestnego" (Cappo) na poŸniej
 {
 	if(MaxLevel>0)//Jak jeszcze nie szczyt zadanej hierarchii, to szuka ojca
 	 for(unsigned i=0;i<NeighSize();i++)
 	  if(Neighbourhood[i].Parent==1)//Jeœli ma ojca to idzie w górê
 	  {
 		 HonorAgent& Rodzic=World[Neighbourhood[i].Y][Neighbourhood[i].X];
-		 Cappo=&Rodzic;//Mo¿e "Rodzic" to zmieni, ale jak nie to znaleziony
-		 return  Rodzic.IsMyFamilyMember(Inny,Cappo,MaxLevel-1);
+		 Cappo=&Rodzic;//Mo¿e "Rodzic" to zmieni, ale jak nie to juz znaleziony
+		 return  Rodzic.IsMyFamilyMember(Inny,Cappo,MaxLevel-1);  //REKURENCJA!
 	  }
 
 	//Jak ju¿ nie poszed³ z tego czy innego powodu w górê to mo¿e szukaæ
@@ -152,7 +164,7 @@ bool    HonorAgent::IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int Max
 	 if(Neighbourhood[j].Child==1) //Jest dzieckiem
 	 {
 		HonorAgent& Dziecko=World[Neighbourhood[j].Y][Neighbourhood[j].X];
-		bool res=Dziecko.IsMyFamilyMember(Inny,Cappo,-1);
+		bool res=Dziecko.IsMyFamilyMember(Inny,Cappo,-1);  //-1 zabezpiecza przed REKURENCJA
 		if(res)
 			return true;
 	 }
@@ -162,6 +174,7 @@ bool    HonorAgent::IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int Max
 }
 
 void    HonorAgent::change_reputation_thru_family(double Delta)
+// Osobista zmiana reputacji, oraz ewentualnie rodzinna rekurencyjnie
 {
 	if(Delta>0) //Wzrost
 	{
@@ -173,11 +186,11 @@ void    HonorAgent::change_reputation_thru_family(double Delta)
 													assert(HonorFeiRep<=1);
 	}
 	//A teraz dla dzieci
-	for(unsigned j=0;j<NeighSize();j++)//Jest mo¿e ojcem - mo¿e szukaæ potomków
+	for(unsigned j=0;j<NeighSize();j++)//Czy jest mo¿e ojcem? Trzeba szukaæ potomków
 	 if(Neighbourhood[j].Child==1) //Jest dzieckiem
 	 {
 		HonorAgent& Dziecko=World[Neighbourhood[j].Y][Neighbourhood[j].X];
-		Dziecko.change_reputation_thru_family(Delta);
+		Dziecko.change_reputation_thru_family(Delta); //REKURENCJA W DÓ£ RODZINY
 	 }
 }
 
@@ -218,26 +231,28 @@ HonorAgent::Decision  HonorAgent::check_partner(unsigned& x,unsigned& y)
 //Wybór partnera interakcji przez agenta, który dosta³ losow¹ inicjatywê
 {
 	this->MemOfLastDecision=WITHDRAW; //DOMYŒLNA DECYZJA
+
 	unsigned L=RANDOM(HowManyNeigh);//Ustalenie który s¹siad
 	if(getNeigh(L,x,y) ) //Pobranie wspó³rzêdnych s¹siada
 	{
 		HonorAgent& Ag=World[y][x];	//Zapamiêtanie referencji do s¹siada
 
-		//BARDZO PROSTA REGU£A DECYZYJNA - wygl¹da, ¿e warto atakowaæ i jest chêæ
-		if(this->Agres>0.0 && DRAND()<this->Agres           //Agresywnoœæ jako
-		&& Ag.HonorFeiRep<(RATIONALITY*this->Power+(1-RATIONALITY)*HonorFeiRep)
-		) //jako wyrachowanie
+		//BARDZO PROSTA REGU£A DECYZYJNA - gdy wygl¹da, ¿e warto atakowaæ i jest chêæ    RULE
+		if(this->Agres>0.0 && DRAND()<this->Agres   //Agresywnoœæ jako  jako wyrachowanie
+		&& Ag.HonorFeiRep<=(RATIONALITY*this->Power+(1-RATIONALITY)*HonorFeiRep)  //Gdy umownie S£ABSZY! Wiêc agresywni nigdy ze sob¹ nie walcz¹!     RULE
+		)
 		{
 			this->MemOfLastDecision=HOOK;//Nieprzypadkowa zaczepka bulliego
 		}
 		else if(
-		//DRAND()<RANDOM_AGRESSION)					//+losowe przypadki burd po pijaku - ZACIEMNIA
-		(Honor>0 && DRAND()<Honor*RANDOM_AGRESSION) //A mo¿e tylko honorowi maj¹ niezer¹ agresjê z powodu nieporozumieñ?
+		//DRAND()<RANDOM_AGRESSION)					//+losowe przypadki burd po pijaku - PODOBNO ZACIEMNIA
+		(Honor>0 && DRAND()<Honor*RANDOM_AGRESSION) //Wiêc mo¿e tylko honorowi maj¹ niezer¹ agresjê z powodu nieporozumieñ?
 		)
 		{
 			this->MemOfLastDecision=HOOK;//Ewentualna zaczepka losowa lub honorowa
 		}
 	}
+	this->HisActions.Count(this->MemOfLastDecision);
 	return this->MemOfLastDecision;
 }
 
@@ -266,6 +281,7 @@ HonorAgent::Decision  HonorAgent::answer_if_hooked(unsigned x,unsigned y)
 		this->MemOfLastDecision=FIGHT;
 	 }
 
+	 this->HisActions.Count(this->MemOfLastDecision);
 	 return this->MemOfLastDecision;
 }
 
@@ -320,8 +336,8 @@ void InitConnections(FLOAT HowManyFar)
 	}
 }
 
-//Po³¹czenia z najbli¿szymi s¹siadami
 void DeleteAllConnections()
+//Usuwanie po³¹czenia z najbli¿szymi s¹siadami
 {
 	for(int x=0;x<SIDE;x++)
 		for(int y=0;y<SIDE;y++)
@@ -352,25 +368,33 @@ void one_step(unsigned long& step_counter)
 					   if(HonorAgent::firstWin(AgI,AgH))
 					   {
 						  AgI.change_reputation(+0.35,AgH);//Zyska³ bo wygra³
+						  AgI.HisActions.Succeses++;
 						  AgI.lost_power(-0.75*DRAND());//Straci³ bo walczy³
 
 						  AgH.change_reputation(+0.1,AgI); //Zyska³ bo stan¹³
 						  AgH.lost_power(-0.95*DRAND());//Straci³ bo przegra³ walkê
+						  AgH.HisActions.Fails++;
 					   }
 					   else
 					   {
 						  AgI.change_reputation(-0.35,AgH);//Straci³ bo zaczepi³ i dosta³ bêcki
+						  AgI.HisActions.Fails++;
 						  AgI.lost_power(-0.95*DRAND()); //Straci³ bo przegra³ walkê
 
+
 						  AgH.change_reputation(+0.75,AgI);//Zyska³ bo wygra³ choæ by³ zaczepiony
+						  AgH.HisActions.Succeses++;
 						  AgH.lost_power(-0.75*DRAND());	//Straci³ bo walczy³
+
 					   }
 					break;
 		   case HonorAgent::GIVEUP:
 					   {
 						  AgI.change_reputation(+0.5,AgH); //Zyska³ bo wygra³ bez walki. Na pewno wiêcej ni¿ w walce???
+						  AgI.HisActions.Succeses++;
 
 						  AgH.change_reputation(-0.5,AgI); //Straci³ bo siê podda³
+						  AgH.HisActions.Fails++;
 						  AgH.lost_power(-0.5*DRAND()/*DRAND()*/);//I trochê dosta³ ³omot dla przyk³adu   (!!!)
 					   }
 					break;
@@ -378,18 +402,23 @@ void one_step(unsigned long& step_counter)
 					  if(DRAND()<POLICE_EFFIC) //Czy przyby³a
 					  {
 						  AgI.change_reputation(-0.35,AgH);//Straci³ bo zaczepi³ i dosta³ bêcki od policji
+						  AgI.HisActions.Fails++;
 						  AgI.lost_power(-0.99*DRAND()); //Straci³ bo walczy³ i przegra³ z przewa¿aj¹c¹ si³¹
 
-						  AgH.change_reputation(-0.75,AgI);//A zaczepiony straci³ bo wezwa³ policje zamiast walczyæ
+						  AgH.HisActions.Succeses++; //Zaczepionemu uda³o siê unikn¹æ bêcek, ale...
+						  AgH.change_reputation(-0.75,AgI);//A  straci³ reputacje bo wezwa³ policje zamiast walczyæ
 					  }
 					  else //A mo¿e nie
 					  {
 						  AgI.change_reputation(+0.5,AgH);//Zyska³ bo wygra³ bez walki. A¿ tyle?
+						  AgI.HisActions.Succeses++;
 
 						  AgH.change_reputation(-0.75,AgI);//Zaczepiony straci³ bo wezwa³ policje
 						  AgH.lost_power(-0.99*DRAND()); //Straci³ bo siê nie broni³, a wkurzy³ wzywaj¹c
+						  AgH.HisActions.Fails++;
 					  }
 					break;
+
 		   //Odpowiedzi na zaczepkê, które siê nie powinny zdarzaæ
 		   case HonorAgent::WITHDRAW:/* TU NIE MO¯E BYÆ */
 		   case HonorAgent::HOOK:	 /* TU NIE MO¯E BYÆ */
@@ -418,27 +447,48 @@ void power_recovery_step()
 	{
 		HonorAgent& Ag=HonorAgent::World[y][x];	//Zapamiêtanie referencji do agenta, ¿eby ci¹gle nie liczyæ indeksów
 
-		if(USED_SELECTION>0 && Ag.Power<USED_SELECTION)  //Chyba nie przezy³
+		if(Ag.LastDecision(false)==HonorAgent::NOTHING)//Nie by³ w tym kroku ani razu wylosowany!
+				Ag.HisActions.Count(HonorAgent::NOTHING);//To mu trzeba doliczyæ do liczników, bo inaczej NOTHING nie bêdzie tam nigdy rejestrowane!
+
+		Ag.HisLifeTime++;  //Zwiêkszenie licznika ¿ycia
+
+		if(MORTALITY>0)   //Losowa œmieræ z horób, staroœci i wypadków
+			{
+			   if(DRAND()<MORTALITY)
+				   Ag.Power=-1;
+			}
+
+		if(USED_SELECTION>=0 && Ag.Power<USED_SELECTION)  //Chyba nie przezy³, selekcja 0 oznacza œmieræ tylko od wypadków
 		{
 		   if(population_growth==0) //Tryb z prawdopodobienstwami inicjalnymi
 		   {       																assert(MAFIAHONOR==false);
 			Ag.RandomReset();
-		   }else
+			LiczbaTrupow++;
+			LiczbaTrupowDzis++;
+		   }
+		   else
 		   if(population_growth==1) //Tryb z losowym s¹siadem
 		   {
 			unsigned ktory=RANDOM(Ag.NeighSize()),xx,yy;
 			bool pom=Ag.getNeigh(ktory,xx,yy);
 			HonorAgent& Rodzic=HonorAgent::World[yy][xx];
-			if(MAFIAHONOR)//Je¿eli stosunki rodzinne to œmieræ ma ró¿ne konsekwencje
-				Ag.SmiercDona();
-			Ag.RandomReset();
-			Ag.Agres=Rodzic.Agres;
-			Ag.Honor=Rodzic.Honor;
-			Ag.CallPolice=Rodzic.CallPolice;
-			if(MAFIAHONOR)//I urodziny tak¿e
+			if(Rodzic.Power>0) //Tylko wtedy mo¿e siê rodziæ! NEW TODO Check  - JAK NIE TO ROZLICZNIE NA PÓNIEJ
 			{
+			 if(MAFIAHONOR)//Je¿eli s¹ stosunki rodzinne to œmieræ ma ró¿ne konsekwencje
+				Ag.SmiercDona();
+
+			 Ag.RandomReset();
+			 Ag.Agres=Rodzic.Agres;
+			 Ag.Honor=Rodzic.Honor;
+			 Ag.CallPolice=Rodzic.CallPolice;
+
+			 if(MAFIAHONOR)//I urodziny tak¿e
+			 {
 				Ag.HonorFeiRep=Rodzic.HonorFeiRep;//Ma reputacje rodzica, bo on go chroni
 				PowiazRodzicielsko(Rodzic,Ag);  //anty SmiercDona();
+			 }
+			 LiczbaTrupow++;
+			 LiczbaTrupowDzis++;
 			}
 		   }
 		   else
@@ -446,14 +496,16 @@ void power_recovery_step()
 		   {                                                                    assert(MAFIAHONOR==false);
 			unsigned xx=RANDOM(SIDE),yy=RANDOM(SIDE);
 			HonorAgent& Drugi=HonorAgent::World[yy][xx];
-			Ag.RandomReset();
-			Ag.Agres=Drugi.Agres;
-			Ag.Honor=Drugi.Honor;
-			Ag.CallPolice=Drugi.CallPolice;
+			if(Drugi.Power>0)  //Mo¿e postaæ do rozliczenia na póŸniej
+			{
+			 Ag.RandomReset();
+			 Ag.Agres=Drugi.Agres;
+			 Ag.Honor=Drugi.Honor;
+			 Ag.CallPolice=Drugi.CallPolice;
+			 LiczbaTrupow++;
+			 LiczbaTrupowDzis++;
+			}
 		   }
-		   //	Ag.Power=0.1*Ag.PowLimit;
-		   LiczbaTrupow++;
-		   LiczbaTrupowDzis++;
 		}
 		else
 		if(Ag.Power<Ag.PowLimit)//Mo¿e siê leczyæ lub "poprawiaæ"
@@ -462,10 +514,10 @@ void power_recovery_step()
 		}
 	}
 
-  //Losowe œmierci i przypadkowe narodzenia
-  if(NOISE_KILL>0)
+  //Losowa wymiana na przypadkowo narodzone (z domyœlnej proporcji)
+  if(EXTERNAL_REPLACE>0)
   {
-	unsigned WypadkiLosow=SIDE*NOISE_KILL*SIDE;
+	unsigned WypadkiLosow=SIDE*EXTERNAL_REPLACE*SIDE;
 	for(;WypadkiLosow>0;WypadkiLosow--)
 	{
 	  unsigned x=RANDOM(SIDE),y=RANDOM(SIDE);
@@ -476,6 +528,7 @@ void power_recovery_step()
 }
 
 void Reset_action_memories()
+//Czyszczenie pamiêci zachowañ
 {
 	for(unsigned v=0;v<SIDE;v++)
 	{
@@ -485,3 +538,5 @@ void Reset_action_memories()
 		}
 	}
 }
+
+

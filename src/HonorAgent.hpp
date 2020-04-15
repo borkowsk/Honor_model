@@ -4,6 +4,7 @@
 typedef double FLOAT;
 #define USES_STDC_RAND
 #include "INCLUDE/Random.h"
+#include "INCLUDE/wb_ptr.hpp"
 
 
 extern unsigned population_growth;//=1;//SPOSOBY ROZMNA¯ANIA
@@ -34,33 +35,83 @@ extern FLOAT    POLICE_EFFIC;//=0.50;//0.650;//0.950; //Z jakim prawdopodobieñst
 //INNE GLOBALNE WLASCIWOSCI SWIATA
 extern bool     MAFIAHONOR;//=true; //Czy reputacja przenosi siê na cz³onków rodziny
 extern FLOAT    USED_SELECTION;//=0.05;//0.10; //Jak bardzo przegrani umieraj¹ (0 - brak selekcji w ogóle)
-extern FLOAT    NOISE_KILL;//=0.001; //Jakie jest prawdopodobienstwo przypadkowej œmierci
+extern FLOAT    MORTALITY;  //=0.01 //Jak ³atwo mo¿na zgin¹æ z przyczyn niespo³ecznych - horoba, wypadek itp. JAK 0 TO S¥ "ELFY"
+extern FLOAT    EXTERNAL_REPLACE;//=0.001; //Jakie jest prawdopodobienstwo wymiany na losowego agenta
 extern FLOAT    RANDOM_AGRESSION;//=0.05;//0.015;//Bazowy poziom agresji zale¿ny od honoru
 
 class HonorAgent
 {
- public: //WEWNÊTRZNE TYPY POMOCNICZE
+ public: // TYPY POMOCNICZE
+
+	enum Decision {NOTHING=-1,WITHDRAW=0,GIVEUP=1,HOOK=2,FIGHT=3,CALLAUTH=4};
+	static const char* Decision2str(Decision Deci) //{NOTHING=-1,WITHDRAW=0,GIVEUP=1,HOOK=2,FIGHT=3,CALLAUTH=4};
+	{
+	   static const char* Names[]={"NOTHING","WITHDRAW","GIVEUP","HOOK","FIGHT","CALLAUTH","?????"};
+	   return Names[Deci+1];
+	}
+
+	struct Actions {
+	//POLA
+	unsigned Counter; //Bêdzie redundantne, ale mo¿e potrzebne do akcesorów R*()
+	unsigned Fails;    //Ile razy przegra³
+	unsigned Succeses; //Ile razy wygra³
+
+	union {
+	struct { unsigned NOTHING,WITHDRAW,GIVEUP,HOOK,FIGHT,CALLAUTH;};
+	unsigned Tab[6]; };
+
+	//METODY KLASY ACTIONS
+	/////////////////////////
+	Actions(){ Reset();}
+	void Reset(){NOTHING=WITHDRAW=GIVEUP=HOOK=FIGHT=CALLAUTH=Fails=Succeses=Counter=0;}
+	void Count(HonorAgent::Decision Deci)
+	{
+			Counter++; //Które zliczenie akcji
+			switch(Deci)
+			{
+			case HonorAgent::WITHDRAW: this->WITHDRAW++;  break;
+			case HonorAgent::GIVEUP:   this->GIVEUP++;  break;
+			case HonorAgent::HOOK:     this->HOOK++; break;
+			case HonorAgent::FIGHT:    this->FIGHT++; break;
+			case HonorAgent::CALLAUTH: this->CALLAUTH++;break;
+			default:
+									   this->NOTHING++;	 break;
+			}
+	}
+	//void operator () (HonorAgent::Decision Deci) { Count(Deci);} //Operator wywo³ania!
+
+	//Obliczanie udzia³ów poszczególnych zachowañ w próbie
+	double R_NOTHING()const{ return  (Counter==0?-1:(NOTHING==0?0:NOTHING/double(Counter)));}
+	double R_WITHDRAW()const { return  (Counter==0?-1:(WITHDRAW==0?0:WITHDRAW/double(Counter)));}
+	double R_GIVEUP()const{ return  (Counter==0?-1:(GIVEUP==0?0:GIVEUP/double(Counter)));}
+	double R_HOOK()const  { return  (Counter==0?-1:(HOOK==0?0:HOOK/double(Counter)));}
+	double R_FIGHT()const  { return  (Counter==0?-1:(FIGHT==0?0:FIGHT/double(Counter)));}
+	double R_CALLAUTH()const { return  (Counter==0?-1:(CALLAUTH==0?0:CALLAUTH/double(Counter)));}
+	};
+
+	static  wbrtm::wb_dynmatrix<HonorAgent> World;//Wspólny swiat agentów
+
 	struct LinkTo {unsigned X,Y;unsigned Parent:1;unsigned Child;
 					LinkTo(){X=Y=-1;Parent=0;Child=0;}
 					};
-	enum Decision {NOTHING=-1,WITHDRAW=0,GIVEUP=1,HOOK=2,FIGHT=3,CALLAUTH=4};
-
-	static  wbrtm::wb_dynmatrix<HonorAgent> World;//Wspólny swiat agentów
 
  public: //Na razie g³ówne w³aœciwoœci dostêpne zewnêtrznie, potem mo¿na pomysleæ czy je schowaæ
 	static unsigned licznik_zyc;//Do tworzeni unikalnych identyfikatorów agentów
 	static bool 	CzyTorus; //Czy geometria torusa czy wyspy z brzegami
 
-	unsigned ID; //Kolejni agenci
+	unsigned ID; //Unikalny identyfikator, po prostu kolejni agenci  w danym przebiegu
+	unsigned HisLifeTime;//Czas ¿ycia
+	Actions  HisActions;//Liczniki
+
 	double Power;//	Si³a (0..1)
 	double PowLimit;// Jak¹ si³ê mo¿e osi¹gn¹æ maksymalnie, gdy nie traci
 
 	double Agres;// Bulizm (0..1) sk³onnoœæ do atakowania
 	double Honor;// Bezwarunkowa honorowoœæ (0..1) sk³onnoœæ podjêcia obrony
-
 	double CallPolice;//Odium wzywacza policji - prawdopodobieñstwo wzywania policji (0..1) jako „wêdrowna œrednia” wezwañ
-	//double Resources;// Zasoby (0..inf)
 
+	//WLAŒCIWE METODY AGENT HONOROWEGO
+	////////////////////////////////////////////////////////////////////////////
 	HonorAgent();  //KONSTRUKTOR
 
 	void RandomReset(); //Losowanie wartoœci atrubutów
@@ -74,6 +125,8 @@ class HonorAgent
 	static bool AreNeigh(int x1,int y1,int x2,int y2);//Sprawdzanie czy dwaj agenci s¹siaduj¹ w jakiœ sposób
 
 	//Inne akcesory
+	wbrtm::wb_pchar  AgentCultureStr() const;//Zwraca reprezentacje tekstow¹ kultury agenta
+	unsigned  AgentCultureMask() const;//Zwraca maskê 3 bitow¹, pokazuj¹c¹ gdzie jest ró¿ne od 0. Aggr:1. bit, Honor:2.bit CallPoll:3.bit
 	ssh_rgb   GetColor() const {return Color;} //Nie modyfikowalny z zewn¹trz indywidualny kolor wêz³a
 	double    GetFeiReputation() const { return HonorFeiRep;}
 	Decision  LastDecision(bool clean=false); //Ostatnia decyzja z kroku MC do celów wizualizacyjnych i statystycznych
@@ -103,6 +156,8 @@ class HonorAgent
 	friend void one_step(unsigned long& step_counter);
 	friend void power_recovery_step();
 	friend void Reset_action_memories();
+	friend void PrintHonorAgentInfo(ostream& o,const HonorAgent& H);
+
  private:
 	ssh_rgb   Color;	//Indywidualny i niezmienny lub obliczony któr¹œ z funkcji koduj¹cych kolor
 	Decision  MemOfLastDecision;
@@ -118,7 +173,7 @@ class HonorAgent
 
 inline HonorAgent::HonorAgent():
 	   Neighbourhood(MAX_LINKS),HowManyNeigh(0)
-	   ,Power(0),PowLimit(0)
+	   ,Power(0),PowLimit(0),HisLifeTime(0)
 	   ,Agres(0),HonorFeiRep(0.5),CallPolice(0.25)
 	   ,MemOfLastDecision(HonorAgent::NOTHING),ID(0)
 	 //  ,Resources(0),
@@ -212,4 +267,45 @@ void PowiazRodzicielsko(HonorAgent& Rodzic,HonorAgent& NowyAgent)
 		//Rodzic.notifyChildBirdth(j);
 		break;
 	}
+}
+
+inline
+wbrtm::wb_pchar  HonorAgent::AgentCultureStr()  const
+//Zwraca reprezentacje tekstow¹ kultury agenta
+{
+   wbrtm::wb_pchar Pom(128);
+  //double Agres;// Bulizm (0..1) sk³onnoœæ do atakowania
+  //double Honor;// Bezwarunkowa honorowoœæ (0..1) sk³onnoœæ podjêcia obrony
+  //double CallPolice;//Odium wzywacza policji - prawdopodobieñstwo wzywania policji (0..1) jako „wêdrowna œrednia” wezwañ
+  //Prawdopodobieñstwa mog¹ byæ naprawdê od 0..1 i moga byæ "zmieszane", wiêc kultury te¿. Choæ w podstawowym modelu same 1
+   if(Agres==0 && Honor==0 && CallPolice==0) //Racjonalny jest
+		Pom.add("Rational");
+
+   if(Agres>0)
+		Pom.add("Agressive");
+
+   if(Honor>0)
+		Pom.add("Honor");
+
+   if(CallPolice>0)
+		Pom.add("Dignity");
+
+   return Pom;
+}
+
+inline
+unsigned  HonorAgent::AgentCultureMask() const
+//Zwraca maskê 3 bitow¹, pokazuj¹c¹ gdzie jest ró¿ne od 0. Aggr:1. bit, Honor:2.bit CallPoll:3.bit
+{
+	unsigned Pom=0;
+    if(Agres>0)
+		Pom|=0x01;
+
+   if(Honor>0)
+		Pom|=0x02;
+
+   if(CallPolice>0)
+		Pom|=0x04;
+
+   return Pom;
 }
