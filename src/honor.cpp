@@ -1,4 +1,4 @@
-// Prototypowy program "ewolucji" kultury honoru w kultur� policyjn�
+﻿// Prototypowy program "ewolucji" kultury honoru w kultur� policyjn�
 //                                                             wersja 21-08-2012
 ////////////////////////////////////////////////////////////////////////////////
 //#include <process.h> //nie ma w GCC?
@@ -224,7 +224,7 @@ wb_pchar MakeFileName(const char* Core)
 		,
 		EXTERNAL_REPLACE,population_growth,HonorAgent::CzyTorus,
 		//...tu proporcje? na razie nie...
-		STOP_AFTER,STAT_AFTER,EveryStep,REPETITION_LIMIT,(getpid()));
+		STOP_AFTER,STAT_AFTER,EveryStep,REPETITION_LIMIT,rand()/*(getpid())*/);
 	return SPom;
 }
 
