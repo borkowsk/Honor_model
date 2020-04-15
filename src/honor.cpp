@@ -295,8 +295,12 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 	 o<<"FLOAT"<<SEP<<"RATIONALITY"<<SEP<<RATIONALITY<<ENDL<<ENDL; //Jak realistycznie ocenia w³asn¹ si³ê (vs. wg. w³asnej reputacji)
 	}
 
-	o<<"REPET"<<SEP<<"STOPAFER"<<SEP<<"VISFREQ"<<SEP<<"PREVSTEP"<<SEP<<"STATSTART"<<ENDL;
-	o<<REPETITION_LIMIT<<SEP<<STOP_AFTER<<SEP<<EveryStep<<SEP<<PREVSTEP<<SEP<<STAT_AFTER<<ENDL<<ENDL;
+	o<<"REPET"<<SEP<<"STOPAFER"<<SEP<<"VISFREQ";
+	if(batch_mode)
+		o<<SEP<<"STATSTEP"<<SEP<<"PREVSTEP"<<SEP<<"STATSTART";o<<ENDL;//Tak ma byæ to ENDL!
+	o<<REPETITION_LIMIT<<SEP<<STOP_AFTER<<SEP<<EveryStep;
+	if(batch_mode)
+		o<<SEP<<(max(EveryStep,100)<<PREVSTEP<<SEP<<STAT_AFTER;o<<ENDL<<ENDL;
 	if(FL) o.flush();
 }
 
