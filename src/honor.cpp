@@ -117,8 +117,8 @@ FLOAT POLICE_EFFIC_STEP=0.25;
 FLOAT POLICE_EFFIC_MAX=1;
 FLOAT POLICE_EFFIC_MIN=0;
 
-FLOAT SELECTION_STEP=0.125;
-FLOAT SELECTION_MAX=0.75;
+FLOAT SELECTION_STEP=0.05;
+FLOAT SELECTION_MAX=0.5;
 FLOAT SELECTION_MIN=0;
 
 FLOAT PROPORTION_STEP=0.05;
@@ -1180,30 +1180,39 @@ void PlotTables(const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 	 printbw(0,2*H2-char_height('X'),"%s",Name3);
 	 printbw(W,2*H2-char_height('X'),"%s",Name4);
 
+	 print_transparently(0);
 	 switch(batch_sele){ //Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
 		case BAT_SELECTION:printc(0,screen_height()-char_height('X'),55,255,
-			"POL.EFF:%g-%g:%g SEL.:%g-%g:%g (B=%g H=%g C=%g) STEPS:%u NREP:%u STATSTART:%u",
+			"POL.EFF:%g-%g:%g SEL.:%g-%g:%g (last: B=%g H=%g C=%g) STEPS:%u NREP:%u STATSTART:%u  ",
 						POLICE_EFFIC_MIN,POLICE_EFFIC_MAX,POLICE_EFFIC_STEP,
 						SELECTION_MIN,SELECTION_MAX,SELECTION_STEP,
-						(BULLI_POPUL<0?-BULLI_POPUL:0),(HONOR_POPUL<0?-HONOR_POPUL:0),(CALLER_POPU<0?-CALLER_POPU:0),
+						BULLI_POPUL,HONOR_POPUL,CALLER_POPU,
 						STOP_AFTER,
 						REPETITION_LIMIT,
 						STAT_AFTER
 						);
 				break;//=1,        walk_params_sele();
 		case BAT_HONORvsCPOLL:printc(0,screen_height()-char_height('X'),55,255,
-			"POL.EFF:%g-%g:%g PROP:%g-%g:%g (B=%g H=%g C=%g) SELECT:%g STEPS:%u NREP:%u STATSTART:%u",
+			"POL.EFF:%g-%g:%g PROP:%g-%g:%g (last: B=%g H=%g C=%g Sel=%g) STEPS:%u NREP:%u STATSTART:%u  ",
 						POLICE_EFFIC_MIN,POLICE_EFFIC_MAX,POLICE_EFFIC_STEP,
 						PROPORTION_MIN,PROPORTION_MAX,PROPORTION_STEP,
-						(BULLI_POPUL<0?-BULLI_POPUL:0),(HONOR_POPUL<0?-HONOR_POPUL:0),(CALLER_POPU<0?-CALLER_POPU:0),
+						BULLI_POPUL,HONOR_POPUL,CALLER_POPU,
 						USED_SELECTION,
 						STOP_AFTER,
 						REPETITION_LIMIT,
 						STAT_AFTER
 						);
 				break;//=2,    walk_params_prop();
-		case BAT_HONORvsAGRR:
-				//.....
+		case BAT_HONORvsAGRR:printc(0,screen_height()-char_height('X'),55,255,
+			"PROP:%g-%g:%g SEL.:%g-%g:%g (last: B=%g H=%g C=%g Sel=%g) STEPS:%u NREP:%u STATSTART:%u  ",
+						PROPORTION_MIN,PROPORTION_MAX,PROPORTION_STEP,
+						SELECTION_MIN,SELECTION_MAX,SELECTION_STEP,
+						BULLI_POPUL,HONOR_POPUL,CALLER_POPU,
+						USED_SELECTION,
+						STOP_AFTER,
+						REPETITION_LIMIT,
+						STAT_AFTER
+						);
 				break;//=3    walk_honor_vs_agrr();
 		case NO_BAT://=0
 		default:
@@ -1224,26 +1233,37 @@ void Write_tables(ostream o,const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 	//NAG£ÓWKI TABEL
 	switch(batch_sele){ //Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
 	case BAT_HONORvsCPOLL:
-	case BAT_SELECTION:
+	case BAT_SELECTION:X=0;
 	for(FLOAT effic=POLICE_EFFIC_MIN;effic<=POLICE_EFFIC_MAX;effic+=POLICE_EFFIC_STEP,X++)
 	{
 		pom.prn("P.Ef%g",effic);
 		o<<pom.get()<<TAB;
 	}
-	o<<TAB<<TAB;
-	for(FLOAT effic=POLICE_EFFIC_MIN;effic<=POLICE_EFFIC_MAX;effic+=POLICE_EFFIC_STEP)
+	o<<TAB<<TAB;X=0;
+	for(FLOAT effic=POLICE_EFFIC_MIN;effic<=POLICE_EFFIC_MAX;effic+=POLICE_EFFIC_STEP,X++)
 	{
 		pom.prn("P.Ef%g",effic);
 		o<<pom.get()<<TAB;
 	}
 	break;
-	case BAT_HONORvsAGRR:
-				//.....
+	case BAT_HONORvsAGRR:X=0;
+	for(FLOAT prop=PROPORTION_MIN;prop<=PROPORTION_MAX;prop+=PROPORTION_STEP,X++)
+	{
+		pom.prn("Prop%g",prop);
+		o<<pom.get()<<TAB;
+	}
+	o<<TAB<<TAB;X=0;
+	for(FLOAT prop=PROPORTION_MIN;prop<=PROPORTION_MAX;prop+=PROPORTION_STEP,X++)
+	{
+		pom.prn("Prop%g",prop);
+		o<<pom.get()<<TAB;
+	}
 	break;//=3    walk_honor_vs_agrr();
 	}
 	o<<X<<TAB<<"!!!"<<endl;
 
 	//NAG£ÓWKI WIERSZY i ZAWARTOŒÆ TABEL
+	Y=0;
 	switch(batch_sele){ //Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
 		case BAT_HONORvsCPOLL:
 			for(FLOAT prop=PROPORTION_MIN;prop<=PROPORTION_MAX;prop+=PROPORTION_STEP,Y++)
@@ -1266,7 +1286,7 @@ void Write_tables(ostream o,const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 			   o<<endl;
 			}
 				break;//=1,        walk_params_sele();
-		case BAT_SELECTION:
+		case BAT_SELECTION:  //Ma selekcjê w pionie
 			for(FLOAT selec=SELECTION_MIN;selec<=SELECTION_MAX;selec+=SELECTION_STEP,Y++)
 			{
 				pom.prn("Sel_%g",selec);
@@ -1283,8 +1303,24 @@ void Write_tables(ostream o,const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 				o<<endl;
 			}
 				break;//=2,    walk_params_prop();
-		case BAT_HONORvsAGRR:
-				//.....
+		case BAT_HONORvsAGRR://Te¿ ma selekcjê w pionie
+			for(FLOAT selec=SELECTION_MIN;selec<=SELECTION_MAX;selec+=SELECTION_STEP,Y++)
+			{
+				pom.prn("Sel_%g",selec);
+				o<<pom.get()<<TAB;
+				X=0;
+				for(FLOAT prop=PROPORTION_MIN;prop<=PROPORTION_MAX;prop+=PROPORTION_STEP,X++)
+				//for(FLOAT effic=POLICE_EFFIC_MIN;effic<=POLICE_EFFIC_MAX;effic+=POLICE_EFFIC_STEP,X++)
+					{ o<<Tab1[Y][X]<<TAB; }
+				o<<TAB;
+				pom.prn("Sel_%g",selec);
+				o<<pom.get()<<TAB;
+				X=0;
+				for(FLOAT prop=PROPORTION_MIN;prop<=PROPORTION_MAX;prop+=PROPORTION_STEP,X++)
+				//for(FLOAT effic=POLICE_EFFIC_MIN;effic<=POLICE_EFFIC_MAX;effic+=POLICE_EFFIC_STEP,X++)
+					{o<<Tab2[Y][X]<<TAB;}
+				o<<endl;
+			}
 				break;//=3    walk_honor_vs_agrr();
 		case NO_BAT: default: cerr<<"\n\aInvalid batch mode!\n"<< endl; exit(-111);
 		}
@@ -1645,9 +1681,9 @@ void walk_honor_vs_agrr()
 			//			BULLI_POPUL=prop;
 
 		   if(Compensation_mode)
-			{                             assert(BULLI_POPUL>=0);
-			  HONOR_POPUL=PROPORTION_MAX-prop;
-			  BULLI_POPUL=prop;
+			{
+			  BULLI_POPUL=PROPORTION_MAX-prop;
+			  HONOR_POPUL=prop;
 			}
 			else
 			{
