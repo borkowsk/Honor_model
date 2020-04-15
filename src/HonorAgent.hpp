@@ -15,7 +15,7 @@ extern unsigned population_growth;//=1;//SPOSOBY ROZMNA¯ANIA
 
 //MACIE¯ I LINKOWANIE  AGENTÓW
 const unsigned 		SIDE=100;//SIDE*SIDE to rozmiar œwiata symulacji
-const int	   		MOORE_RAD=2; //Nie zmieniaæ na unsigned bo siê psuje losowanie!      //2 dla DEBUG,zwykle 3
+const int	   		MOORE_RAD=3; //Nie zmieniaæ na unsigned bo siê psuje losowanie!      //2 dla DEBUG,zwykle 3
 const unsigned 		MOORE_SIZE=(4*MOORE_RAD*MOORE_RAD)+4*MOORE_RAD;//S¹siedzi Moora - cztery kwadranty + 4 osie
 const FLOAT    		OUTFAR_LINKS_PER_AGENT=0.5; //Ile jest dodatkowych linków jako u³amek liczby agentów
 const unsigned 		FAR_LINKS=unsigned(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT*2);

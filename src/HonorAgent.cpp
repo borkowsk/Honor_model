@@ -118,17 +118,20 @@ void HonorAgent::RandomReset()
 		{
 		   Honor=0;CallPolice=0;//Wartoœci domyœlne dla agresywnych i wzywaj¹cych policje
 
-		   Agres=(DRAND()<fabs(BULLI_POPUL)?1:0); //Albo jest albo nie jest
-		   if(Agres!=1)
+		   Agres=(DRAND()<fabs(BULLI_POPUL)?1:0); //Albo jest AGRESYWNY albo nie jest
+		   if(Agres!=1) //Jak nie jest
 		   {
-			 Honor=(DRAND()*(1-fabs(BULLI_POPUL)) < fabs(HONOR_POPUL)? 1 : 0 ); //Jest albo nie ma
-			 if(Honor!=1)
-			 {
+			 Honor=(DRAND()*(1-fabs(BULLI_POPUL)) < fabs(HONOR_POPUL)? 1 : 0 ); //Jest HONOROWY albo nie jest
+			 if(Honor!=1)   //NIE AGRESYWNY i NIE HONOROWY
+			 {              //policyjny albo racjonalny - mog³oby byæ CallPolice=1 i w ten sposób znikaj¹ RACJONALNI (czwarta strategia)
 			   CallPolice=(DRAND()*(1-fabs(BULLI_POPUL)-fabs(HONOR_POPUL)) < fabs(CALLER_POPU)? 1 : 0); //Jest albo nie ma
+			   if(ONLY3STRAT && CallPolice==0) //Racjonalni "zabijani"!
+					this->Power=-1;
 			 }
 			 else
 			 {
-			   /* LOOSER */    //cerr<<"*";
+			   /* NIE LOOSER tylko HONOROWY */    //cerr<<"*";
+			   //cerr<<"?"; //  Kiedy tu trafia? - jak Honorowy! Niepotrzebne, ale nie szkodzi
 			 }
 		   }
 		}
