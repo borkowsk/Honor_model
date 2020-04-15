@@ -19,7 +19,7 @@ using namespace std;
 using namespace wbrtm;
 
 const char* MODELNAME="Culture of honor";
-const char* VERSIONNUM="0.37a (28-03-2014)";
+const char* VERSIONNUM="0.38d (10-04-2014)";
 
 bool  batch_mode=false;       //Czy tryb pracy przeszukiwania przestrzeni parametrów?
 enum  BATCH_MODES {NO_BAT=0,BAT_SELECTION=1,BAT_HONORvsCPOLL=2,BAT_HONORvsAGRR=3} batch_sele=BAT_SELECTION;	//Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
@@ -35,6 +35,13 @@ unsigned population_growth=1;//SPOSOBY ROZMNA¯ANIA
 //POLICEEF=0 BULLYPR=.25 HONORPR=.11 CALLPRP=.22 MAXSTEP=10000 VISSTEP=10 GROWMODE=1 REPETITIONS=10
 //
 //ZMIANY:
+//0.38abc - wprowadzenie mapy miary zró¿nicowania dodatkowo obok mapy proporcji i mapy œredniej si³y
+//        ale wariacja liczona pomiêdzy krokiem a jego bezpoœrednim poprzednikiem jest bardzo ma³a.
+//		  eiêc wprowadzono parametr  PREVSTEP ustawiony na 80 (czêœciej ni¿ co 100 kroków i tak nie liczy w trybie przestrzeni parametrów)
+//        POPRAWIONO LICZENIE KROKÓW W D£UGICH EKSPERYMENTACH PRZESTRZENI PARAMETRÓW!
+//        Wprowadzono parametr ONLY3STRAT do testowania zubo¿onej wersji modelu (bez racjonalnych)
+//		  i wyprowadzenie PREVSTEP  i ONLY3STRAT jako parametrów wywo³ania.
+//
 //0.37a - statystyki po akcji po grupach. Inne defaulty startowe
 //		  rozbudowanie statystyk akcji wypisywanych do logu
 //		  testowanie mo¿liwoœci modelu ze œmiertelnoœci¹
@@ -89,18 +96,19 @@ unsigned population_growth=1;//SPOSOBY ROZMNA¯ANIA
 #include "HonorAgent.hpp"
 
 //INNE GLOBALNE WLASCIWOSCI SWIATA
-bool     MAFIAHONOR=true; //Czy reputacja przenosi siê na cz³onków rodziny
+bool     MAFIAHONOR=false; //Czy reputacja przenosi siê na cz³onków rodziny
 FLOAT    USED_SELECTION=0.05;//0.10; //Jak bardzo przegrani umieraj¹ (0 - brak selekcji w ogóle)
-FLOAT    MORTALITY=0.005;  //=0.01 //Jak ³atwo mo¿na zgin¹æ z przyczyn niespo³ecznych - horoba, wypadek itp. JAK 0 TO S¥ "ELFY"
-FLOAT    EXTERNAL_REPLACE=0.0001; //Jakie jest prawdopodobienstwo przypadkowej œmierci
-FLOAT    RANDOM_AGRESSION=0.03;//0.015;//Bazowy poziom agresji zale¿ny od honoru
+FLOAT    MORTALITY=0.0009;  //=0.01 //Jak ³atwo mo¿na zgin¹æ z przyczyn niespo³ecznych - horoba, wypadek itp. JAK 0 TO S¥ "ELFY"
+FLOAT    EXTERNAL_REPLACE=0.0001; //Jakie jest prawdopodobienstwo przypadkowej zamiany na zupe³nie innego
+FLOAT    RANDOM_AGRESSION=0.0125;//0.015;//Bazowy poziom agresji zale¿ny od honoru
 
 //DEFINICJE ROZK£ADÓW WARTOŒCI DLA INDYWIDUALNYCH CECH AGENTÓW
-FLOAT    BULLI_POPUL=-0.33;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk³ad sterowany BULLISM_LIMIT
+FLOAT    BULLI_POPUL=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk³ad sterowany BULLISM_LIMIT
 						   //("-" jest sygna³em zafiksowania w trybie batch
-FLOAT	 HONOR_POPUL=0.17;//.17;0.33;//Jaka czêœæ agentów populacji jest œciœle honorowa
-FLOAT    CALLER_POPU=0.17;//.17;       //Jaka czêœæ wzywa policje zamiast siê poddawaæ
-FLOAT    POLICE_EFFIC=0.05;//0.33;0.5//0.650;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
+FLOAT	 HONOR_POPUL=0.25;//0.10;//.17;0.33;//Jaka czêœæ agentów populacji jest œciœle honorowa
+FLOAT    CALLER_POPU=0.25;//0.10;//.17;       //Jaka czêœæ wzywa policje zamiast siê poddawaæ
+FLOAT    POLICE_EFFIC=0.00;//0.05;//0.33;0.5//0.650;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
+bool     ONLY3STRAT=false; //Czy nie u¿ywamy strategii "racjonalnej"?
 
 //Eksploracja przestrzeni parametrów
 bool  Compensation_mode=true;//Czy przestrzeñ gdzie Honorowi i CallPolice, albo Agresywni i Honorowi uzupe³niaj¹ siê do PROP_MAX
@@ -120,8 +128,9 @@ FLOAT PROPORTION_MIN=0.0;
 //Sterowanie statystykami i powtórzeniami
 unsigned REPETITION_LIMIT=1; //10//Ile ma zrobiæ powtórzeñ tego samego eksperymentu;
 unsigned RepetNum=1; //Która to kolejna repetycja?  - NIE ZMIENIAÆ RÊCZNIE!
-unsigned STOP_AFTER=10000;//Po jakim czasie staje automatycznie
+unsigned STOP_AFTER=100000;//Po jakim czasie staje automatycznie
 unsigned STAT_AFTER=0; //Po jakim czasie zacz¹æ zliczaæ koncow¹ statystykê
+unsigned PREVSTEP=80;//Ile kroków przed g³ówn¹ statystyk¹ wyliczaæ poprzedni stan dla wariacji
 unsigned EveryStep=1;//Czêstotliwoœæ wizualizacji i zapisu do logu
 					 //Ujemne oznacza tryb automatycznej inkrementacji
 unsigned DumpStep=10000;//Czêstoœæ zrzutów stanów agentów
@@ -142,7 +151,7 @@ bool  Batch_true_color=false;//Czy skale kolorów true-color czy 256 kolorów têcz
 //Nazwy plików
 wb_pchar LogName("HonorXXX"); //   string?
 wb_pchar DumpNam("HonorXXX");
-string  Test;
+string  Comment;
 
 OptionalParameterBase* Parameters[]={ //sizeof(Parameters)/sizeof(Parameters[])
 new ParameterLabel("PARAMETERS FOR SINGLE SIMULATION"),
@@ -156,6 +165,8 @@ new OptionalParameter<FLOAT>(RANDOM_AGRESSION,0,0.15,"HONAGRES","Probability of 
 new OptionalParameter<FLOAT>(POLICE_EFFIC,0,1,"POLICEEF","Probability of efficient police intervention"),//=0.50;//0.650;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
 new OptionalParameter<FLOAT>(BULLI_POPUL,0,1,"BULLYPR","Initial probability to born as bully agent"),//=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk³ad sterowany BULLISM_LIMIT ("-" jest sygna³em zafiksowania w trybie batch
 new OptionalParameter<FLOAT>(HONOR_POPUL,0,1,"HONORPR","Initial probability to born as honor agent"),//=0.18;//0.3333;//Jaka czêœæ agentów populacji jest œciœle honorowa
+new OptionalParameter<bool>(ONLY3STRAT,false,true,"CALLPOLISREST","Is police callers the last strategies?"
+																	"\n\t\tIf not the rational strategies take the rest to 100%"),
 new OptionalParameter<FLOAT>(CALLER_POPU,0,1,"CALLPRP","Initial probability to born as police caller"),//=0.25;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
 new ParameterLabel("PARAMETERS FOR MULTIPLE SIMULATIONS (EXPLORATION/BATCH MODE)"),
 new OptionalParameter<bool>(batch_mode,false,true,"BATCH","To switch into parametr space batch mode"),
@@ -182,11 +193,12 @@ new OptionalParameter<unsigned>(STAT_AFTER,1,1000000,"STATSTART","When start to 
 new OptionalParameter<unsigned>(STOP_AFTER,1,1000000,"MAXSTEP","To stop each simulation after this number of steps"),
 new OptionalParameter<unsigned>(EveryStep,1,10000,   "VISSTEP","For set how offten visualisation and statistics occur?"),
 new OptionalParameter<unsigned>(DumpStep,1,1000000,  "DMPSTEP","For set how offten agents attributes and graphix view is dumped?"),
+new OptionalParameter<unsigned>(PREVSTEP,1,100,		 "PREVSTEP","When previous state for calculating of variatio is calculated?"),
 //new OptionalParameter<const char*>(LogName,"honor","HONOR","LOGNAME","Name for main log file"),
 //new OptionalParameter<const char*>(DumpNam,"honor_dump","DUMP","DUMPNAME","Name for detailed log file"),
 new OptionalParameter<wb_pchar>(LogName,wb_pchar("honor"),wb_pchar("HONOR"),"LOGNAME","Name for main log file"),
 new OptionalParameter<wb_pchar>(DumpNam,wb_pchar("honor_dump"),wb_pchar("DUMP"),"DUMPNAME","Name for detailed log file"),
-new OptionalParameter<string>(Test,"<<anything what you want>>","TEST#1","TEST_COMM","Comment for the experiment, will be put into log file"),
+new OptionalParameter<string>(Comment,"bla bala bla","TEST#1","COMMENT","Comment for the experiment, will be put into log file"),
 new ParameterLabel("VISUALISATION OPTIONS"),
 new OptionalParameter<bool>(ConsoleLog,  false,true, "CONSOLOG","To log events on console window"),
 new OptionalParameter<bool>(dump_screens,false,true, "DUMPSCR","Dump graphix screen after every visualisation frame"),
@@ -198,7 +210,7 @@ new OptionalParameter<bool>(Batch_true_color,false,true,"BATTRCOL","To plot in t
 new OptionalParameter<unsigned>(VSIZ,3,20,"AGENTSIZ1","Side of an agent on the composed visualisation"), //Maksymalny rozmiar boku agenta w wizualizacji kompozytowej
 new OptionalParameter<unsigned>(SSIZ,1,5,"AGENTSIZ2","Side of an agent on the small visualisations"), //Bok agenta w wizualizacji uzupe³niaj¹cej (ma³ej)
 new ParameterLabel("END OF LIST")
-};
+};                                              // Comment PREVSTEP ONLY3STRAT
 
 wb_pchar MakeFileName(const char* Core)
 {
@@ -214,6 +226,10 @@ wb_pchar MakeFileName(const char* Core)
 void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool FL=true)
 {
 	o<<MODELNAME<<"\tv.:"<<SEP<<VERSIONNUM<<ENDL;
+	o<<Comment.c_str()<<ENDL;// Comment
+	for(int i=0;i<_argc;i++)
+		o<<_argv[i]<<SEP;
+	o<<ENDL;
 	o<<"uint"<<SEP<<"SIDE"<<SEP<<SIDE<<ENDL;//SIDE*SIDE to rozmiar œwiata symulacji
 	o<<"bool"<<SEP<<"TORUS"<<SEP<<(HonorAgent::CzyTorus?"true":"false")<<ENDL;
 
@@ -241,7 +257,15 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 		o<<"FLOAT"<<SEP<<"Default USE_SELECTION"<<SEP<<USED_SELECTION<<ENDL; //Jak bardzo przegrani umieraj¹ (0 - brak selekcji w ogóle)
 		o<<"FLOAT"<<SEP<<"Default BULLY_POPUL  "<<SEP<<BULLI_POPUL<<ENDL;
 		o<<"FLOAT"<<SEP<<"Default HONOR_POPUL  "<<SEP<<HONOR_POPUL<<ENDL;
-		o<<"FLOAT"<<SEP<<"Default CALLP_POPUL  "<<SEP<<CALLER_POPU<<ENDL;
+		if(ONLY3STRAT)
+		{
+			o<<"FLOAT"<<SEP<<"Default CALLP_POPUL"<<SEP<<(1.0-abs(BULLI_POPUL)-abs(HONOR_POPUL))<<ENDL;
+		}
+		else
+		{
+			o<<"FLOAT"<<SEP<<"Default CALLP_POPUL  "<<SEP<<CALLER_POPU<<ENDL;
+			o<<"FLOAT"<<SEP<<"always give up"<<SEP<<(1.0-abs(CALLER_POPU)-abs(BULLI_POPUL)-abs(HONOR_POPUL))<<ENDL;//not realy "loosers"
+		}
 		o<<"BOOL"<<SEP<<"FAMILIES"<<SEP<<(MAFIAHONOR?"Yes":"No")<<SEP<<MAFIAHONOR<<ENDL;
 	}
 	else
@@ -249,20 +273,30 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 	 o<<"FLOAT"<<SEP<<"POLICE_EFFIC"<<SEP<<POLICE_EFFIC<<ENDL;	//Z jakim prawdopodobieñstwem wezwana policja obroni agenta
 	 o<<"FLOAT"<<SEP<<"USE_SELECTION"<<SEP<<USED_SELECTION<<ENDL; //Jak bardzo przegrani umieraj¹ (0 - brak selekcji w ogóle)
 	 o<<"BOOL"<<SEP<<"FAMILIES"<<SEP<<(MAFIAHONOR?"Yes":"No")<<SEP<<MAFIAHONOR<<ENDL;
-	 if(BULLI_POPUL>=1) //...
+
+	 if(BULLI_POPUL>=1) //... CO TO?         TODO?
+	 {                                                                          assert("Dead code called?"==NULL);
 	  o<<"FLOAT"<<SEP<<"BULLISM_LIMIT"<<SEP<<BULLISM_LIMIT<<ENDL;//Maksymalny mo¿liwy bulizm.
+	 }
 	 else
 	 {
 	  o<<"FLOAT"<<SEP<<"BULLY_POPUL"<<SEP<<BULLI_POPUL<<ENDL;//Albo zero-jedynkowo
 	  o<<"FLOAT"<<SEP<<"HONOR_POPUL"<<SEP<<HONOR_POPUL<<ENDL;//Jaka czêœæ agentów populacji jest œciœle honorowa
-	  o<<"FLOAT"<<SEP<<"CALLP_POPUL"<<SEP<<CALLER_POPU<<ENDL;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
+	  if(ONLY3STRAT)
+	  {
+			o<<"FLOAT"<<SEP<<"CALLP_POPUL"<<SEP<<(1.0-abs(BULLI_POPUL)-abs(HONOR_POPUL))<<ENDL;
+	  }
+	  else
+	  {
+			o<<"FLOAT"<<SEP<<"CALLP_POPUL"<<SEP<<CALLER_POPU<<ENDL;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
+			o<<"FLOAT"<<SEP<<"RATIONAL"<<SEP<<(1.0-abs(CALLER_POPU)-abs(BULLI_POPUL)-abs(HONOR_POPUL))<<ENDL;//not realy "loosers"
+	  }
 	 }
-	 o<<"FLOAT"<<SEP<<"always give up"<<SEP<<(1.0-CALLER_POPU-CALLER_POPU-HONOR_POPUL)<<ENDL;//"loosers"
 	 o<<"FLOAT"<<SEP<<"RATIONALITY"<<SEP<<RATIONALITY<<ENDL<<ENDL; //Jak realistycznie ocenia w³asn¹ si³ê (vs. wg. w³asnej reputacji)
 	}
 
-	o<<"REPET"<<SEP<<"STOPAFER"<<SEP<<"VISFREQ"<<SEP<<"STATSTART"<<ENDL;
-	o<<REPETITION_LIMIT<<SEP<<STOP_AFTER<<SEP<<EveryStep<<SEP<<STAT_AFTER<<ENDL<<ENDL;
+	o<<"REPET"<<SEP<<"STOPAFER"<<SEP<<"VISFREQ"<<SEP<<"PREVSTEP"<<SEP<<"STATSTART"<<ENDL;
+	o<<REPETITION_LIMIT<<SEP<<STOP_AFTER<<SEP<<EveryStep<<SEP<<PREVSTEP<<SEP<<STAT_AFTER<<ENDL<<ENDL;
 	if(FL) o.flush();
 }
 
@@ -350,8 +384,9 @@ void CalculateStatistics(wb_dynmatrix<HonorAgent>& World)
 			HonorAgent& Ag=World[v][h];			//Zapamiêtanie referencji do agenta, ¿eby ci¹gle nie liczyæ indeksów
 
 			ForFeiRep+=Ag.GetFeiReputation();
-			ForCallRe+=Ag.CallPolice;
-			ForPower+=Ag.Power;
+			//Przynale¿noœc do grup jest wa¿ona waroœci¹ prawdopodobieñstwa zachowania
+			ForCallRe+=Ag.CallPolice;//... ale jak wsyztsko jest =1 albo 0
+			ForPower+=Ag.Power;      //to zwyk³a proporcja w populacji
 			ForAgres+=Ag.Agres;
 			ForHonor+=Ag.Honor;
 
@@ -373,8 +408,10 @@ void CalculateStatistics(wb_dynmatrix<HonorAgent>& World)
 			{
              	MnStrenght[3].summ+=Ag.Power;MnStrenght[3].N++;
 			}
+
 			//ZLICZANIE DECYZJI
 			HonorAgent::Decision Deci=Ag.LastDecision(false);
+
 			CoutersForAll.Count(Deci); //Zliczanie dla wszystkich
 			if(Ag.Agres!=0) CoutersForBullys.Count(Deci);// i dla agresywnych
 			else
@@ -386,6 +423,7 @@ void CalculateStatistics(wb_dynmatrix<HonorAgent>& World)
 			}
 	}
 
+   //Ostateczne uœrednienie
 	MeanFeiReputation=ForFeiRep/N;
 	MeanCallPolice=ForCallRe/N;
 	MeanPower=ForPower/N;
@@ -424,7 +462,8 @@ void save_stat()
 
 		if(REPETITION_LIMIT>1)//Gdy ma zrobiæ wiêcej powtórzeñ tego samego eksperymentu
 			OutLog<<RepetNum<<'\t'; //Która to kolejna repetycja?
-		OutLog<<"0.9";
+		OutLog<<"0.9"; //????
+
 		//MnStrenght&MnStrNam[NumOfCounters]
 		for(unsigned i=0;i<NumOfCounters;i++)
 			OutLog<<'\t'<<(MnStrenght[i].N>0?MnStrenght[i].summ/MnStrenght[i].N:-9999);
@@ -529,32 +568,42 @@ void dump_step(wb_dynmatrix<HonorAgent>& World,unsigned step)
 	{
 		for(unsigned h=0;h<SIDE;h++)
 		{
-			Dumps<<RepetNum<<TAB<<step<<TAB<<v<<TAB<<h<<TAB;
 			HonorAgent& Ag=World[v][h];	//Zapamiêtanie referencji
-			Dumps<<Ag.ID<<TAB<<Ag.Power<<TAB<<Ag.PowLimit<<TAB
-				 <<Ag.GetFeiReputation()<<TAB
+			Dumps<< scientific         //Wszystkie inty w double ¿eby SPSS ³atwo czyta³ (swoj¹ drog¹ co za g³upi program!)
+				 <<(double)RepetNum<<TAB
+				 <<(double)step<<TAB
+				 <<(double)v<<TAB
+				 <<(double)h<<TAB;
+			Dumps<<(double)Ag.ID<<TAB
+				 << setprecision(5)
+				 <<(double)Ag.Power<<TAB
+				 <<(double)Ag.PowLimit<<TAB
+				 <<(double)Ag.GetFeiReputation()<<TAB
 
-				 <<Ag.Agres<<TAB
-				 <<Ag.Honor<<TAB
-				 <<Ag.CallPolice<<TAB
+				 <<(double)Ag.Agres<<TAB
+				 <<(double)Ag.Honor<<TAB
+				 <<(double)Ag.CallPolice<<TAB
 
 				 <<Ag.AgentCultureStr()<<TAB
-				 <<Ag.AgentCultureMask()<<TAB
+				 << scientific << setprecision(5)
+				 <<(double)Ag.AgentCultureMask()<<TAB
 
-				 <<HonorAgent::Decision2str(Ag.LastDecision(false))<<TAB
-				 <<Ag.LastDecision(false)<<TAB
+				 <<HonorAgent::Decision2str(Ag.LastDecision(false))<<TAB//<<setw(4)<< setprecision(2)?
+				 <<(double)Ag.LastDecision(false)<<TAB
 
-				 <<Ag.HisLifeTime<<TAB
-				 <<Ag.HisActions.Counter<<TAB
+				 << scientific << setprecision(7)
+				 <<(double)Ag.HisLifeTime<<TAB
+				 <<(double)Ag.HisActions.Counter<<TAB
 
-				  <<Ag.HisActions.R_NOTHING()<<TAB
-				  <<Ag.HisActions.R_WITHDRAW()<<TAB
-				  <<Ag.HisActions.R_GIVEUP()<<TAB
-				  <<Ag.HisActions.R_HOOK() <<TAB
-				  <<Ag.HisActions.R_FIGHT() <<TAB
-				  <<Ag.HisActions.R_CALLAUTH()<<TAB
+				 << scientific << setprecision(2)
+				 <<Ag.HisActions.R_NOTHING()<<TAB
+				 <<Ag.HisActions.R_WITHDRAW()<<TAB
+				 <<Ag.HisActions.R_GIVEUP()<<TAB
+				 <<Ag.HisActions.R_HOOK() <<TAB
+				 <<Ag.HisActions.R_FIGHT() <<TAB
+				 <<Ag.HisActions.R_CALLAUTH()<<TAB
 
-				 <<Ag.NeighSize()<<endl;
+				 <<(double)Ag.NeighSize()<<endl;
 		}
 	}
 	Dumps<<endl;//Po ca³oœci
@@ -1038,6 +1087,12 @@ void walk_params_prop()
    wb_dynmatrix<FLOAT> MeanPowerOfHonor(Y,X);MeanPowerOfHonor.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPowerOfPCall(Y,X);MeanPowerOfPCall.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPowerOfOther(Y,X);MeanPowerOfOther.fill(-9999.0);
+
+   wb_dynmatrix<FLOAT> PropMnDiffOfAgres(Y,X);PropMnDiffOfAgres.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfHonor(Y,X);PropMnDiffOfHonor.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfPCall(Y,X);PropMnDiffOfPCall.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfOther(Y,X);PropMnDiffOfOther.fill(-9999.0);
+
    wb_dynmatrix<FLOAT> MeanPropOfAgres(Y,X);MeanPropOfAgres.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPropOfHonor(Y,X);MeanPropOfHonor.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPropOfPCall(Y,X);MeanPropOfPCall.fill(-9999.0);
@@ -1075,6 +1130,11 @@ void walk_params_prop()
 		   FLOAT MnPropOfHonor=0;
 		   FLOAT MnPropOfPCall=0;
 		   FLOAT MnPropOfOther=0;
+		   FLOAT PrevPropOfAgres=abs(BULLI_POPUL);
+		   FLOAT PrevPropOfHonor=abs(HONOR_POPUL);
+		   FLOAT PrevPropOfPCall=abs(CALLER_POPU);
+		   FLOAT PrevPropOfOther=1-abs(BULLI_POPUL)-abs(HONOR_POPUL)-abs(CALLER_POPU);
+
 		   unsigned StatSteps=0;
 
 		   for(unsigned rep=0;rep<REPETITION_LIMIT;rep++)
@@ -1084,12 +1144,13 @@ void walk_params_prop()
 			 InitConnections(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT);//Tworzenie sieci
 			 InitAtributes(SIDE*SIDE); //Losowanie atrybutów dla agentów
 			 //CalculateStatistics(World); //Po raz pierwszy dla tych parametrów
-			 for(step_counter=1;step_counter<=STOP_AFTER;step_counter++)
+
+			 for(step_counter=1;step_counter<=STOP_AFTER;/*step_counter++*/)
 			 {
 				Reset_action_memories();//Czyszczenie, mo¿e niepotrzebne
 				power_recovery_step(); // Krok procesu regeneracji si³
 				one_step(step_counter); // Krok dynamiki interakcji agresywnych
-				/*
+				/*                      // step_counter++ JEST W ŒRODKU!
 				if (SOCIAL_IMPACT_INTENSITY_PERCENT > 0)
 					// Opcjonalnie krok wp³ywu spo³ecznego
 						social_impact_step(World,
@@ -1131,7 +1192,7 @@ void walk_params_prop()
 									"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
 						}
 				}
-			 } // KONIEC PÊTLI SYMULACJI
+			 } // KONIEC PÊTLI POJEDYNCZEJ SYMULACJI
 			 DeleteAllConnections();  //Koniec tej symulacji
 			} // KONIEC PÊTLI POWTORZEN
 																				assert(StatSteps>0);
@@ -1204,6 +1265,12 @@ void walk_params_sele()
    wb_dynmatrix<FLOAT> MeanPowerOfHonor(Y,X);MeanPowerOfHonor.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPowerOfPCall(Y,X);MeanPowerOfPCall.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPowerOfOther(Y,X);MeanPowerOfOther.fill(-9999.0);
+
+   wb_dynmatrix<FLOAT> PropMnDiffOfAgres(Y,X);PropMnDiffOfAgres.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfHonor(Y,X);PropMnDiffOfHonor.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfPCall(Y,X);PropMnDiffOfPCall.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfOther(Y,X);PropMnDiffOfOther.fill(-9999.0);
+
    wb_dynmatrix<FLOAT> MeanPropOfAgres(Y,X);MeanPropOfAgres.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPropOfHonor(Y,X);MeanPropOfHonor.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPropOfPCall(Y,X);MeanPropOfPCall.fill(-9999.0);
@@ -1226,29 +1293,50 @@ void walk_params_sele()
 		   FLOAT MnPropOfHonor=0;
 		   FLOAT MnPropOfPCall=0;
 		   FLOAT MnPropOfOther=0;
-		   unsigned StatSteps=0;
+		   FLOAT VariPropOfAgres=0;
+		   FLOAT VariPropOfHonor=0;
+		   FLOAT VariPropOfPCall=0;
+		   FLOAT VariPropOfOther=0;
 
-		   for(unsigned rep=0;rep<REPETITION_LIMIT;rep++)
+		   unsigned StatSteps=0;   //Zlicza wszystkie kroki u¿yte do statystyk, czasem przez kilka powtórzeñ
+
+		   for(unsigned rep=0;rep<REPETITION_LIMIT;rep++)  //POWTARZANIE SYMULACJI
 		   {
 			 HonorAgent::World.alloc(SIDE,SIDE);//Pocz¹tek - alokacja agentów œwiata
 			 double POPULATION=double(SIDE)*SIDE;   //Ile ich w ogóle jest?
 			 InitConnections(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT);//Tworzenie sieci
 			 InitAtributes(SIDE*SIDE); //Losowanie atrybutów dla agentów
-			 //CalculateStatistics(World); //Po raz pierwszy dla tych parametrów
-			 for(step_counter=1;step_counter<=STOP_AFTER;step_counter++)
+			 FLOAT PrevPropOfAgres=abs(BULLI_POPUL);
+			 FLOAT PrevPropOfHonor=abs(HONOR_POPUL);
+			 FLOAT PrevPropOfPCall=abs(CALLER_POPU);
+			 FLOAT PrevPropOfOther=1-abs(BULLI_POPUL)-abs(HONOR_POPUL)-abs(CALLER_POPU);
+
+			 //CalculateStatistics(World); //Po raz pierwszy dla tych parametrów   ???
+			 for(step_counter=1;step_counter<=STOP_AFTER;/*step_counter++*/)
 			 {
 				Reset_action_memories();//Czyszczenie, mo¿e niepotrzebne
 				power_recovery_step(); // Krok procesu regeneracji si³
 				one_step(step_counter); // Krok dynamiki interakcji agresywnych
+										// step_counter++ JEST W ŒRODKU!
 				/*
 				if (SOCIAL_IMPACT_INTENSITY_PERCENT > 0)
 					// Opcjonalnie krok wp³ywu spo³ecznego
 						social_impact_step(World,
 						SOCIAL_IMPACT_INTENSITY_PERCENT);
 				*/
-				if (step_counter % max(EveryStep,100u) == 0)
+				int StepSpecific = step_counter % max(EveryStep,100u);
+				if ( StepSpecific == max(EveryStep,100u)- PREVSTEP  ) //poprzedni krok przed liczeniem g³ównym
 				{
-					CalculateStatistics(HonorAgent::World);
+					 CalculateStatistics(HonorAgent::World);   //Potrzebne s¹ proporcje poprzednie dla tego co potem
+					 PrevPropOfAgres = MnStrenght[0].N / POPULATION;
+					 PrevPropOfHonor = MnStrenght[1].N / POPULATION;
+					 PrevPropOfPCall = MnStrenght[2].N / POPULATION;
+					 PrevPropOfOther = MnStrenght[3].N / POPULATION;
+				}
+
+				if ( StepSpecific == 0)
+				{
+					CalculateStatistics(HonorAgent::World);   //Teraz wrzystkie statystyki...
 					cout <<"\r["<<rep<<"] "<< step_counter<<"  ";
 
 					if(step_counter>=STAT_AFTER) //Mo¿e tylko koncowy stan równowagi?
@@ -1257,10 +1345,19 @@ void walk_params_sele()
 						MnPowOfHonor += MnStrenght[1].N > 0 ? MnStrenght[1].summ / MnStrenght[1].N : 0;
 						MnPowOfPCall += MnStrenght[2].N > 0 ? MnStrenght[2].summ / MnStrenght[2].N : 0;
 						MnPowOfOther += MnStrenght[3].N > 0 ? MnStrenght[3].summ / MnStrenght[3].N : 0;
-						MnPropOfAgres += MnStrenght[0].N / POPULATION;
-						MnPropOfHonor += MnStrenght[1].N / POPULATION;
-						MnPropOfPCall += MnStrenght[2].N / POPULATION;
-						MnPropOfOther += MnStrenght[3].N / POPULATION;
+						FLOAT CurrPropOfAgres=0;
+						FLOAT CurrPropOfHonor=0;
+						FLOAT CurrPropOfPCall=0;
+						FLOAT CurrPropOfOther=0;
+						MnPropOfAgres += CurrPropOfAgres = MnStrenght[0].N / POPULATION;
+						MnPropOfHonor += CurrPropOfHonor = MnStrenght[1].N / POPULATION;
+						MnPropOfPCall += CurrPropOfPCall = MnStrenght[2].N / POPULATION;
+						MnPropOfOther += CurrPropOfOther = MnStrenght[3].N / POPULATION;
+						VariPropOfAgres+=abs(PrevPropOfAgres-CurrPropOfAgres);//(MnPropOfAgres>PrevPropOfAgres?MnPropOfAgres-PrevPropOfAgres:PrevPropOfAgres-MnPropOfAgres);
+						VariPropOfHonor+=abs(PrevPropOfHonor-CurrPropOfHonor);//(MnPropOfHonor>PrevPropOfHonor?MnPropOfHonor-PrevPropOfHonor:PrevPropOfHonor-MnPropOfHonor);
+						VariPropOfPCall+=abs(PrevPropOfPCall-CurrPropOfPCall);//(MnPropOfPCall>PrevPropOfPCall?MnPropOfPCall-PrevPropOfPCall:PrevPropOfPCall-MnPropOfPCall);
+						VariPropOfOther+=abs(PrevPropOfOther-CurrPropOfOther);//(MnPropOfOther>PrevPropOfOther?MnPropOfOther-PrevPropOfOther:PrevPropOfOther-MnPropOfOther);
+
 						StatSteps++;
 					}
 
@@ -1278,8 +1375,12 @@ void walk_params_sele()
 									PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 									"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
 								else
-									PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
-									"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
+								{
+									//PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+									//		"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
+									PlotTables("PropMnDiffOfAgres",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor,
+											"PropMnDiffOfPCall",PropMnDiffOfPCall,"PropMnDiffOfOther",PropMnDiffOfOther,Batch_true_color);
+								}
 						}
 				}
 			 } // KONIEC PÊTLI SYMULACJI
@@ -1295,6 +1396,11 @@ void walk_params_sele()
 			MnPropOfHonor /= StatSteps;
 			MnPropOfPCall /= StatSteps;
 			MnPropOfOther /= StatSteps;
+			VariPropOfAgres/= StatSteps;
+			VariPropOfHonor/= StatSteps;
+			VariPropOfPCall/= StatSteps;
+			VariPropOfOther/= StatSteps;
+
 			cout << '\r' << setw(6) << setprecision(4)
 				<< MnPowOfAgres << '\t' << MnPowOfHonor << '\t'
 				<< MnPowOfPCall << '\t' << MnPowOfOther;
@@ -1306,6 +1412,10 @@ void walk_params_sele()
 			MeanPropOfHonor[Y][X]=MnPropOfHonor;
 			MeanPropOfPCall[Y][X]=MnPropOfPCall;
 			MeanPropOfOther[Y][X]=MnPropOfOther;
+			PropMnDiffOfAgres[Y][X]=VariPropOfAgres;
+			PropMnDiffOfHonor[Y][X]=VariPropOfHonor;
+			PropMnDiffOfPCall[Y][X]=VariPropOfPCall;
+			PropMnDiffOfOther[Y][X]=VariPropOfOther;
 
 			if(BatchPlotPower)
 				PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
@@ -1316,18 +1426,27 @@ void walk_params_sele()
 	   }
    }
    //Zrobienie u¿ytku z wyników
-   clear_screen();
-   PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
-						"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
-   SaveScreen(STOP_AFTER);
-   clear_screen();
-   PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
-						"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
-   SaveScreen(STOP_AFTER+1);
    Write_tables(OutLog,"MnPowOfAgres",MeanPowerOfAgres,"MnPropOfAgres",MeanPropOfAgres);
    Write_tables(OutLog,"MnPowOfHonor",MeanPowerOfHonor,"MnPropOfHonor",MeanPropOfHonor);
    Write_tables(OutLog,"MnPowOfPCall",MeanPowerOfPCall,"MnPropOfPCall",MeanPropOfPCall);
    Write_tables(OutLog,"MnPowOfOther",MeanPowerOfOther,"MnPropOfOther",MeanPropOfOther);
+   Write_tables(OutLog,"PropMnDiffOfAgres",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor);
+   Write_tables(OutLog,"PropMnDiffOfPCall",PropMnDiffOfPCall,"PropMnDiffOfOther",PropMnDiffOfOther);
+
+   clear_screen();
+   PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+              "MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
+   SaveScreen(STOP_AFTER);
+
+   clear_screen();
+   PlotTables("PropMnDiffOfAgres",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor,
+			  "PropMnDiffOfPCall",PropMnDiffOfPCall,"PropMnDiffOfOther",PropMnDiffOfOther,Batch_true_color);
+   SaveScreen(STOP_AFTER+2);
+
+   clear_screen();
+   PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+			  "MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
+   SaveScreen(STOP_AFTER+1);
 
    WB_error_enter_before_clean=0;//Juz sie bledow nie spodziewamy
    while(1)
@@ -1354,6 +1473,12 @@ void walk_honor_vs_agrr()
    wb_dynmatrix<FLOAT> MeanPowerOfHonor(Y,X);MeanPowerOfHonor.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPowerOfPCall(Y,X);MeanPowerOfPCall.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPowerOfOther(Y,X);MeanPowerOfOther.fill(-9999.0);
+
+   wb_dynmatrix<FLOAT> PropMnDiffOfAgres(Y,X);PropMnDiffOfAgres.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfHonor(Y,X);PropMnDiffOfHonor.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfPCall(Y,X);PropMnDiffOfPCall.fill(-9999.0);
+   wb_dynmatrix<FLOAT> PropMnDiffOfOther(Y,X);PropMnDiffOfOther.fill(-9999.0);
+
    wb_dynmatrix<FLOAT> MeanPropOfAgres(Y,X);MeanPropOfAgres.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPropOfHonor(Y,X);MeanPropOfHonor.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPropOfPCall(Y,X);MeanPropOfPCall.fill(-9999.0);
@@ -1401,12 +1526,13 @@ void walk_honor_vs_agrr()
 			 InitConnections(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT);//Tworzenie sieci
 			 InitAtributes(SIDE*SIDE); //Losowanie atrybutów dla agentów
 			 //CalculateStatistics(World); //Po raz pierwszy dla tych parametrów
-			 for(step_counter=1;step_counter<=STOP_AFTER;step_counter++)
+			 for(step_counter=1;step_counter<=STOP_AFTER;/*step_counter++*/)
 			 {
 				Reset_action_memories();//Czyszczenie, mo¿e niepotrzebne
 				power_recovery_step(); // Krok procesu regeneracji si³
+
 				one_step(step_counter); // Krok dynamiki interakcji agresywnych
-				/*
+				/*                      // step_counter++ JEST W ŒRODKU!
 				if (SOCIAL_IMPACT_INTENSITY_PERCENT > 0)
 					// Opcjonalnie krok wp³ywu spo³ecznego
 						social_impact_step(World,
