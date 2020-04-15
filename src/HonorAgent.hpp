@@ -2,43 +2,46 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 typedef double FLOAT;
+#include "iostream"
 #define USES_STDC_RAND
 #include "INCLUDE/Random.h"
 #include "INCLUDE/wb_ptr.hpp"
 
 
-extern unsigned population_growth;//=1;//SPOSOBY ROZMNA¯ANIA
+extern unsigned population_growth;//=1;//SPOSOBY ROZMNAï¿½ANIA
 							 // 0 - wg. inicjalnych proporcji
-							 // 1 - lokalne rozmazanie losowe s¹siad
+							 // 1 - lokalne rozmazanie losowe sï¿½siad
 							 // 2 - lokalne rozmazanie proporcjonalne do sily  //NIE ZAIMPLEMENTOWANE!
-							 // 3 - globalne, losowy ziutek z ca³oœci
+							 // 3 - globalne, losowy ziutek z caï¿½oï¿½ci
 
-//MACIE¯ I LINKOWANIE  AGENTÓW
-const unsigned 		SIDE=100;//SIDE*SIDE to rozmiar œwiata symulacji
-const int	   		MOORE_RAD=3; //Nie zmieniaæ na unsigned bo siê psuje losowanie!      //2 dla DEBUG,zwykle 3
-const unsigned 		MOORE_SIZE=(4*MOORE_RAD*MOORE_RAD)+4*MOORE_RAD;//S¹siedzi Moora - cztery kwadranty + 4 osie
-const FLOAT    		OUTFAR_LINKS_PER_AGENT=0.5; //Ile jest dodatkowych linków jako u³amek liczby agentów
+//MACIEï¿½ I LINKOWANIE  AGENTï¿½W
+const unsigned 		SIDE=100;//SIDE*SIDE to rozmiar ï¿½wiata symulacji
+const int	   		MOORE_RAD=3; //Nie zmieniaï¿½ na unsigned bo siï¿½ psuje losowanie!      //2 dla DEBUG,zwykle 3
+const unsigned 		MOORE_SIZE=(4*MOORE_RAD*MOORE_RAD)+4*MOORE_RAD;//Sï¿½siedzi Moora - cztery kwadranty + 4 osie
+const FLOAT    		OUTFAR_LINKS_PER_AGENT=0.5; //Ile jest dodatkowych linkï¿½w jako uï¿½amek liczby agentï¿½w
 const unsigned 		FAR_LINKS=unsigned(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT*2);
-const unsigned 		MAX_LINKS=MOORE_SIZE + 2/*ZAPAS*/ + (FAR_LINKS/(SIDE*SIDE)? FAR_LINKS/(SIDE*SIDE):2); //Ile maksymalnie mo¿e miec agent linków
-const FLOAT    		RECOVERY_POWER=0.005;//Jak¹ czêœæ si³y odzyskuje w kroku
-const FLOAT    		RATIONALITY=0.0; //WAGA jak realistycznie ocenia w³asn¹ si³ê (vs. wed³óg w³asnej reputacji)
+const unsigned 		MAX_LINKS=MOORE_SIZE + 2/*ZAPAS*/ + (FAR_LINKS/(SIDE*SIDE)? FAR_LINKS/(SIDE*SIDE):2); //Ile maksymalnie moï¿½e miec agent linkï¿½w
+const FLOAT    		RECOVERY_POWER=0.005;//Jakï¿½ czï¿½ï¿½ siï¿½y odzyskuje w kroku
+const FLOAT    		RATIONALITY=0.0; //WAGA jak realistycznie ocenia wï¿½asnï¿½ siï¿½ï¿½ (vs. wedï¿½ï¿½g wï¿½asnej reputacji)
 
-//INDYWIDUALNE CECHY AGENTÓW
-const FLOAT    BULLISM_LIMIT=-1;//0.2;//0.66;//0.10;//Maksymalny mo¿liwy bulizm.
-								//Jak ujemne to rozk³ad Pareto lub brak rozk³adu, jak dodatnie to dzwonowy
-extern FLOAT    BULLI_POPUL;//=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk³ad sterowany BULLISM_LIMIT
-						   //("-" jest sygna³em zafiksowania w trybie batch (?!?!? USUN¥Æ! TODO }
-extern FLOAT	HONOR_POPUL;//=0.18;//0.3333;//Jaka czêœæ agentów populacji jest œciœle honorowa
-extern FLOAT    CALLER_POPU;//=0.25;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
-extern FLOAT    POLICE_EFFIC;//=0.50;//0.650;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
+//INDYWIDUALNE CECHY AGENTï¿½W
+const FLOAT    BULLISM_LIMIT=-1;//0.2;//0.66;//0.10;//Maksymalny moï¿½liwy bulizm.
+								//Jak ujemne to rozkï¿½ad Pareto lub brak rozkï¿½adu, jak dodatnie to dzwonowy
+extern FLOAT    BULLI_POPUL;//=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozkï¿½ad sterowany BULLISM_LIMIT
+						   //("-" jest sygnaï¿½em zafiksowania w trybie batch (?!?!? USUNï¿½ï¿½! TODO }
+extern FLOAT	HONOR_POPUL;//=0.18;//0.3333;//Jaka czï¿½ï¿½ agentï¿½w populacji jest ï¿½ciï¿½le honorowa
+extern FLOAT    CALLER_POPU;//=0.25;//Jaka czï¿½ï¿½ wzywa policje zamiast siï¿½ poddawaï¿½
+extern FLOAT    POLICE_EFFIC;//=0.50;//0.650;//0.950; //Z jakim prawdopodobieï¿½stwem wezwana policja obroni agenta
 extern bool		ONLY3STRAT; //Czy tylko 3 strategie?
 
 //INNE GLOBALNE WLASCIWOSCI SWIATA
-extern bool     MAFIAHONOR;//=true; //Czy reputacja przenosi siê na cz³onków rodziny
-extern FLOAT    USED_SELECTION;//=0.05;//0.10; //Jak bardzo przegrani umieraj¹ (0 - brak selekcji w ogóle)
-extern FLOAT    MORTALITY;  //=0.01 //Jak ³atwo mo¿na zgin¹æ z przyczyn niespo³ecznych - horoba, wypadek itp. JAK 0 TO S¥ "ELFY"
+extern bool     MAFIAHONOR;//=true; //Czy reputacja przenosi siï¿½ na czï¿½onkï¿½w rodziny
+extern FLOAT    USED_SELECTION;//=0.05;//0.10; //Jak bardzo przegrani umierajï¿½ (0 - brak selekcji w ogï¿½le)
+extern FLOAT    MORTALITY;  //=0.01 //Jak ï¿½atwo moï¿½na zginï¿½ï¿½ z przyczyn niespoï¿½ecznych - horoba, wypadek itp. JAK 0 TO Sï¿½ "ELFY"
 extern FLOAT    EXTERNAL_REPLACE;//=0.001; //Jakie jest prawdopodobienstwo wymiany na losowego agenta
-extern FLOAT    RANDOM_AGRESSION;//=0.05;//0.015;//Bazowy poziom agresji zale¿ny od honoru
+//extern FLOAT    RANDOM_AGRESSION;//=0.05;//0.015;//Bazowy poziom agresji, najpierw byï¿½ dla wszystkich a potem zaleï¿½ny od honoru
+extern FLOAT    HONOR_AGRESSION;//=0.0250;//0.015;//Bazowy poziom agresji tylko dla HONOROWYCH
+extern FLOAT    AGRES_AGRESSION;//=0.0250;//POZIOM PRZYPADKOWEJ AGRESJI AGRESYWNYCH (bez calkulacji kto silniejszy!)
 
 class HonorAgent
 {
@@ -53,9 +56,9 @@ class HonorAgent
 
 	struct Actions {
 	//POLA
-	unsigned Counter; //Bêdzie redundantne, ale mo¿e potrzebne do akcesorów R*()
-	unsigned Fails;    //Ile razy przegra³
-	unsigned Succeses; //Ile razy wygra³
+	unsigned Counter; //Bï¿½dzie redundantne, ale moï¿½e potrzebne do akcesorï¿½w R*()
+	unsigned Fails;    //Ile razy przegraï¿½
+	unsigned Succeses; //Ile razy wygraï¿½
 
 	union {
 	struct { unsigned NOTHING,WITHDRAW,GIVEUP,HOOK,FIGHT,CALLAUTH;};
@@ -67,7 +70,7 @@ class HonorAgent
 	void Reset(){NOTHING=WITHDRAW=GIVEUP=HOOK=FIGHT=CALLAUTH=Fails=Succeses=Counter=0;}
 	void Count(HonorAgent::Decision Deci)
 	{
-			Counter++; //Które zliczenie akcji
+			Counter++; //Ktï¿½re zliczenie akcji
 			switch(Deci)
 			{
 			case HonorAgent::WITHDRAW: this->WITHDRAW++;  break;
@@ -79,9 +82,9 @@ class HonorAgent
 									   this->NOTHING++;	 break;
 			}
 	}
-	//void operator () (HonorAgent::Decision Deci) { Count(Deci);} //Operator wywo³ania!
+	//void operator () (HonorAgent::Decision Deci) { Count(Deci);} //Operator wywoï¿½ania!
 
-	//Obliczanie udzia³ów poszczególnych zachowañ w próbie
+	//Obliczanie udziaï¿½ï¿½w poszczegï¿½lnych zachowaï¿½ w prï¿½bie
 	double R_NOTHING()const{ return  (Counter==0?-1:(NOTHING==0?0:NOTHING/double(Counter)));}
 	double R_WITHDRAW()const { return  (Counter==0?-1:(WITHDRAW==0?0:WITHDRAW/double(Counter)));}
 	double R_GIVEUP()const{ return  (Counter==0?-1:(GIVEUP==0?0:GIVEUP/double(Counter)));}
@@ -90,84 +93,84 @@ class HonorAgent
 	double R_CALLAUTH()const { return  (Counter==0?-1:(CALLAUTH==0?0:CALLAUTH/double(Counter)));}
 	};
 
-	static  wbrtm::wb_dynmatrix<HonorAgent> World;//Wspólny swiat agentów
+	static  wbrtm::wb_dynmatrix<HonorAgent> World;//Wspï¿½lny swiat agentï¿½w
 
 	struct LinkTo {unsigned X,Y;unsigned Parent:1;unsigned Child;
 					LinkTo(){X=Y=-1;Parent=0;Child=0;}
 					};
 
- public: //Na razie g³ówne w³aœciwoœci dostêpne zewnêtrznie, potem mo¿na pomysleæ czy je schowaæ
-	static unsigned licznik_zyc;//Do tworzeni unikalnych identyfikatorów agentów
+ public: //Na razie gï¿½ï¿½wne wï¿½aï¿½ciwoï¿½ci dostï¿½pne zewnï¿½trznie, potem moï¿½na pomysleï¿½ czy je schowaï¿½
+	static unsigned licznik_zyc;//Do tworzeni unikalnych identyfikatorï¿½w agentï¿½w
 	static bool 	CzyTorus; //Czy geometria torusa czy wyspy z brzegami
 
 	unsigned ID; //Unikalny identyfikator, po prostu kolejni agenci  w danym przebiegu
-	unsigned HisLifeTime;//Czas ¿ycia
+	unsigned HisLifeTime;//Czas ï¿½ycia
 	Actions  HisActions;//Liczniki
 
-	double Power;//	Si³a (0..1)
-	double PowLimit;// Jak¹ si³ê mo¿e osi¹gn¹æ maksymalnie, gdy nie traci
+	double Power;//	Siï¿½a (0..1)
+	double PowLimit;// Jakï¿½ siï¿½ï¿½ moï¿½e osiï¿½gnï¿½ï¿½ maksymalnie, gdy nie traci
 
-	double Agres;// Bulizm (0..1) sk³onnoœæ do atakowania
-	double Honor;// Bezwarunkowa honorowoœæ (0..1) sk³onnoœæ podjêcia obrony
-	double CallPolice;//Odium wzywacza policji - prawdopodobieñstwo wzywania policji (0..1) jako „wêdrowna œrednia” wezwañ
+	double Agres;// Bulizm (0..1) skï¿½onnoï¿½ï¿½ do atakowania
+	double Honor;// Bezwarunkowa honorowoï¿½ï¿½ (0..1) skï¿½onnoï¿½ï¿½ podjï¿½cia obrony
+	double CallPolice;//Odium wzywacza policji - prawdopodobieï¿½stwo wzywania policji (0..1) jako ï¿½wï¿½drowna ï¿½redniaï¿½ wezwaï¿½
 
-	//WLAŒCIWE METODY AGENT HONOROWEGO
+	//WLAï¿½CIWE METODY AGENT HONOROWEGO
 	////////////////////////////////////////////////////////////////////////////
 	HonorAgent();  //KONSTRUKTOR
 
-	void RandomReset(); //Losowanie wartoœci atrubutów
+	void RandomReset(); //Losowanie wartoï¿½ci atrubutï¿½w
 
-	//Obsluga po³¹czeñ
-	bool addNeigh(unsigned x,unsigned y);//Dodaje sasiada o okreslonych wspó³rzêdnych w œwiecie, o ile zmieœci
-	bool getNeigh(unsigned i,unsigned& x,unsigned& y) const;//Czyta wspó³rzedne s¹siada, o ile jest
-	unsigned NeighSize() const; //Ile ma zarejestrowanych s¹siadów
-	bool getNeigh(HonorAgent* Ptr,unsigned i,unsigned& x,unsigned& y) const;//Szuka s¹siada po wskaŸniku, o ile jest
-	void forgetAllNeigh(); //Zapomina wszystkich dodanych s¹siadów, co nie znaczy ¿e oni zapominaj¹ jego
-	static bool AreNeigh(int x1,int y1,int x2,int y2);//Sprawdzanie czy dwaj agenci s¹siaduj¹ w jakiœ sposób
+	//Obsluga poï¿½ï¿½czeï¿½
+	bool addNeigh(unsigned x,unsigned y);//Dodaje sasiada o okreslonych wspï¿½rzï¿½dnych w ï¿½wiecie, o ile zmieï¿½ci
+	bool getNeigh(unsigned i,unsigned& x,unsigned& y) const;//Czyta wspï¿½rzedne sï¿½siada, o ile jest
+	unsigned NeighSize() const; //Ile ma zarejestrowanych sï¿½siadï¿½w
+	bool getNeigh(HonorAgent* Ptr,unsigned i,unsigned& x,unsigned& y) const;//Szuka sï¿½siada po wskaï¿½niku, o ile jest
+	void forgetAllNeigh(); //Zapomina wszystkich dodanych sï¿½siadï¿½w, co nie znaczy ï¿½e oni zapominajï¿½ jego
+	static bool AreNeigh(int x1,int y1,int x2,int y2);//Sprawdzanie czy dwaj agenci sï¿½siadujï¿½ w jakiï¿½ sposï¿½b
 
 	//Inne akcesory
-	wbrtm::wb_pchar  AgentCultureStr() const;//Zwraca reprezentacje tekstow¹ kultury agenta
-	unsigned  AgentCultureMask() const;//Zwraca maskê 3 bitow¹, pokazuj¹c¹ gdzie jest ró¿ne od 0. Aggr:1. bit, Honor:2.bit CallPoll:3.bit
-	ssh_rgb   GetColor() const {return Color;} //Nie modyfikowalny z zewn¹trz indywidualny kolor wêz³a
+	wbrtm::wb_pchar  AgentCultureStr() const;//Zwraca reprezentacje tekstowï¿½ kultury agenta
+	unsigned  AgentCultureMask() const;//Zwraca maskï¿½ 3 bitowï¿½, pokazujï¿½cï¿½ gdzie jest rï¿½ne od 0. Aggr:1. bit, Honor:2.bit CallPoll:3.bit
+	ssh_rgb   GetColor() const {return Color;} //Nie modyfikowalny z zewnï¿½trz indywidualny kolor wï¿½zï¿½a
 	double    GetFeiReputation() const { return HonorFeiRep;}
-	Decision  LastDecision(bool clean=false); //Ostatnia decyzja z kroku MC do celów wizualizacyjnych i statystycznych
+	Decision  LastDecision(bool clean=false); //Ostatnia decyzja z kroku MC do celï¿½w wizualizacyjnych i statystycznych
 
 	//Funkcje decyzyjne
-	Decision  check_partner(unsigned& x,unsigned& y);//Wybór partnera interakcji
-	Decision  answer_if_hooked(unsigned x,unsigned y);//OdpowiedŸ na zaczepkê
+	Decision  check_partner(unsigned& x,unsigned& y);//Wybï¿½r partnera interakcji
+	Decision  answer_if_hooked(unsigned x,unsigned y);//Odpowiedï¿½ na zaczepkï¿½
 	void      change_reputation(double Delta,HonorAgent& Powod,int level=0);//Wzrost lub spadek reputacji z zabezpieczeniem zakresu, i ewentualnym dziedziczeniem
-	void      lost_power(double delta);  //Spadek, zu¿ycie si³y z zabezpieczeniem zera
+	void      lost_power(double delta);  //Spadek, zuï¿½ycie siï¿½y z zabezpieczeniem zera
 	static
-	bool      firstWin(HonorAgent& In,HonorAgent& Ho);//Ustala czy pierwszy czy drugi agent zwyciê¿y³ w konfrontacji
+	bool      firstWin(HonorAgent& In,HonorAgent& Ho);//Ustala czy pierwszy czy drugi agent zwyciï¿½yï¿½ w konfrontacji
 
-	//Obsluga stosunków rodzinnych
-	bool    IsParent(unsigned i);//Czy dany s¹siad jest rodzicem
-	bool    IsChild(unsigned i); //Czy dany s¹siad jest dzieckiem
-	bool    IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int MaxLevel=2);//Czy inny "nale¿y do rodziny"
-								//Przy okazji sprawdzenia ustalamy "Ojca chrzestnego" na poŸniej
-	void    change_reputation_thru_family(double Delta);//Rodzinna, rekurencyjna zmiana reputacji od agenta w dó³
-								//najlepiej u¿yæ z "Cappo" rodziny
-	void 	SmiercDona();//Usuwa powi¹zania
-	friend void PowiazRodzicielsko(HonorAgent& Rodzic,HonorAgent& Ag);  //anty SmiercDona(); - buduje powi¹zania
+	//Obsluga stosunkï¿½w rodzinnych
+	bool    IsParent(unsigned i);//Czy dany sï¿½siad jest rodzicem
+	bool    IsChild(unsigned i); //Czy dany sï¿½siad jest dzieckiem
+	bool    IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int MaxLevel=2);//Czy inny "naleï¿½y do rodziny"
+								//Przy okazji sprawdzenia ustalamy "Ojca chrzestnego" na poï¿½niej
+	void    change_reputation_thru_family(double Delta);//Rodzinna, rekurencyjna zmiana reputacji od agenta w dï¿½
+								//najlepiej uï¿½yï¿½ z "Cappo" rodziny
+	void 	SmiercDona();//Usuwa powiï¿½zania
+	friend void PowiazRodzicielsko(HonorAgent& Rodzic,HonorAgent& Ag);  //anty SmiercDona(); - buduje powiï¿½zania
 
-	//G³ówna dynamika symulacji
+	//Gï¿½ï¿½wna dynamika symulacji
     friend void InitAtributes(FLOAT HowMany);
 	friend void InitConnections(FLOAT HowManyFar);
 	friend void DeleteAllConnections();
 	friend void one_step(unsigned long& step_counter);
 	friend void power_recovery_step();
 	friend void Reset_action_memories();
-	friend void PrintHonorAgentInfo(ostream& o,const HonorAgent& H);
+	friend void PrintHonorAgentInfo(std::ostream& o,const HonorAgent& H);
 
  private:
-	ssh_rgb   Color;	//Indywidualny i niezmienny lub obliczony któr¹œ z funkcji koduj¹cych kolor
+	ssh_rgb   Color;	//Indywidualny i niezmienny lub obliczony ktï¿½rï¿½ï¿½ z funkcji kodujï¿½cych kolor
 	Decision  MemOfLastDecision;
-	wbrtm::wb_dynarray<LinkTo> Neighbourhood;//Lista wspó³rzêdnych s¹siadów
-	unsigned HowManyNeigh; //Liczba posiadanych s¹siadów
+	wbrtm::wb_dynarray<LinkTo> Neighbourhood;//Lista wspï¿½rzï¿½dnych sï¿½siadï¿½w
+	unsigned HowManyNeigh; //Liczba posiadanych sï¿½siadï¿½w
 
-	double HonorFeiRep;//Reputacja wojownika jako „wêdrowna œrednia” z konfrontacji (0..1)
+	double HonorFeiRep;//Reputacja wojownika jako ï¿½wï¿½drowna ï¿½redniaï¿½ z konfrontacji (0..1)
 
-	const LinkTo* Neigh(unsigned i); //Dostêp do rekordu linku do kolejnego s¹siada
+	const LinkTo* Neigh(unsigned i); //Dostï¿½p do rekordu linku do kolejnego sï¿½siada
 };
 
 
@@ -184,12 +187,12 @@ inline HonorAgent::HonorAgent():
 
 inline
 bool HonorAgent::AreNeigh(int x1,int y1,int x2,int y2)
-//Sprawdzanie czy dwaj agenci s¹siaduj¹ w jakiœ sposób. Np. ¿eby wykluczyæ zdublowane linki
+//Sprawdzanie czy dwaj agenci sï¿½siadujï¿½ w jakiï¿½ sposï¿½b. Np. ï¿½eby wykluczyï¿½ zdublowane linki
 {
 	HonorAgent& A=HonorAgent::World[y1][x1];
 	for(unsigned i=0;i<A.NeighSize();i++)
 	{
-	   if(A.Neighbourhood[i].X==x2 && A.Neighbourhood[i].Y==y2) //Ju¿ taki jest
+	   if(A.Neighbourhood[i].X==x2 && A.Neighbourhood[i].Y==y2) //Juï¿½ taki jest
 				return true;
 	}
 	return false;
@@ -197,7 +200,7 @@ bool HonorAgent::AreNeigh(int x1,int y1,int x2,int y2)
 
 inline
 bool    HonorAgent::IsParent(unsigned i)
-//Czy dany s¹siad jest rodzicem
+//Czy dany sï¿½siad jest rodzicem
 {
 	if(i<this->NeighSize()
 	&& this->Neighbourhood[i].Parent==1)
@@ -208,7 +211,7 @@ bool    HonorAgent::IsParent(unsigned i)
 
 inline
 bool    HonorAgent::IsChild(unsigned i)
-//Czy dany s¹siad jest dzieckiem
+//Czy dany sï¿½siad jest dzieckiem
 {
 	if(i<this->NeighSize()
 	&& this->Neighbourhood[i].Child==1)
@@ -218,16 +221,16 @@ bool    HonorAgent::IsChild(unsigned i)
 }
 
 inline
-void 	HonorAgent::SmiercDona()//Usuwa powi¹zania
+void 	HonorAgent::SmiercDona()//Usuwa powiï¿½zania
 {
 	for(unsigned i=0;i<this->NeighSize();i++)
 	{
-		if(Neighbourhood[i].Parent==1)//Rodzic agenta, jesli ¿yje zostaje powiadomiony ¿e straci³ dziecko
+		if(Neighbourhood[i].Parent==1)//Rodzic agenta, jesli ï¿½yje zostaje powiadomiony ï¿½e straciï¿½ dziecko
 		{
-			Neighbourhood[i].Parent=0;//Dla porz¹dku
+			Neighbourhood[i].Parent=0;//Dla porzï¿½dku
 			HonorAgent& Rodzic=World[Neighbourhood[i].Y][Neighbourhood[i].X];
 			for(unsigned j=0;j<Rodzic.NeighSize();j++)
-			if( this==&World[Rodzic.Neighbourhood[j].Y][Rodzic.Neighbourhood[j].X] ) //Siê znalaz³ na liœcie
+			if( this==&World[Rodzic.Neighbourhood[j].Y][Rodzic.Neighbourhood[j].X] ) //Siï¿½ znalazï¿½ na liï¿½cie
 			{																	assert(Rodzic.Neighbourhood[j].Child==1);
 				Rodzic.Neighbourhood[j].Child=0;
 				//Rodzic.notifyChildDeath(j);
@@ -235,12 +238,12 @@ void 	HonorAgent::SmiercDona()//Usuwa powi¹zania
 			}
 		}
 		else
-		if(Neighbourhood[i].Child==1)//Dzieci agenta, jesli ¿yj¹, zostaj¹ powiadomione ¿e straci³y rodzica
+		if(Neighbourhood[i].Child==1)//Dzieci agenta, jesli ï¿½yjï¿½, zostajï¿½ powiadomione ï¿½e straciï¿½y rodzica
 		{
-			Neighbourhood[i].Child=0;//Dla porz¹dku
+			Neighbourhood[i].Child=0;//Dla porzï¿½dku
 			HonorAgent& Dziecko=World[Neighbourhood[i].Y][Neighbourhood[i].X];
 			for(unsigned j=0;j<Dziecko.NeighSize();j++)
-			if( this==&World[Dziecko.Neighbourhood[j].Y][Dziecko.Neighbourhood[j].X] ) //Siê znalaz³ na liœcie
+			if( this==&World[Dziecko.Neighbourhood[j].Y][Dziecko.Neighbourhood[j].X] ) //Siï¿½ znalazï¿½ na liï¿½cie
 			{																	assert(Dziecko.Neighbourhood[j].Parent==1);
 				Dziecko.Neighbourhood[j].Parent=0;
 				//Rodzic.notifyChildDeath(j);
@@ -252,17 +255,17 @@ void 	HonorAgent::SmiercDona()//Usuwa powi¹zania
 
 inline
 void PowiazRodzicielsko(HonorAgent& Rodzic,HonorAgent& NowyAgent)
-//anty SmiercDona(); - buduje powi¹zania
+//anty SmiercDona(); - buduje powiï¿½zania
 {
 	for(unsigned i=0;i<NowyAgent.NeighSize();i++)
-	if( &Rodzic==&HonorAgent::World[NowyAgent.Neighbourhood[i].Y][NowyAgent.Neighbourhood[i].X] ) //Znalaz³ rodzica na swojej liœcie
+	if( &Rodzic==&HonorAgent::World[NowyAgent.Neighbourhood[i].Y][NowyAgent.Neighbourhood[i].X] ) //Znalazï¿½ rodzica na swojej liï¿½cie
 	{                                                                           assert(NowyAgent.Neighbourhood[i].Parent==0);
 		NowyAgent.Neighbourhood[i].Parent=1;
 		break;
 	}
 
 	for(unsigned j=0;j<Rodzic.NeighSize();j++)
-	if( &NowyAgent==&HonorAgent::World[Rodzic.Neighbourhood[j].Y][Rodzic.Neighbourhood[j].X] ) //Siê znalaz³ na liœcie rodzica
+	if( &NowyAgent==&HonorAgent::World[Rodzic.Neighbourhood[j].Y][Rodzic.Neighbourhood[j].X] ) //Siï¿½ znalazï¿½ na liï¿½cie rodzica
 	{																			assert(Rodzic.Neighbourhood[j].Child==0);
 		Rodzic.Neighbourhood[j].Child=1;
 		//Rodzic.notifyChildBirdth(j);
@@ -272,13 +275,13 @@ void PowiazRodzicielsko(HonorAgent& Rodzic,HonorAgent& NowyAgent)
 
 inline
 wbrtm::wb_pchar  HonorAgent::AgentCultureStr()  const
-//Zwraca reprezentacje tekstow¹ kultury agenta
+//Zwraca reprezentacje tekstowï¿½ kultury agenta
 {
    wbrtm::wb_pchar Pom(128);
-  //double Agres;// Bulizm (0..1) sk³onnoœæ do atakowania
-  //double Honor;// Bezwarunkowa honorowoœæ (0..1) sk³onnoœæ podjêcia obrony
-  //double CallPolice;//Odium wzywacza policji - prawdopodobieñstwo wzywania policji (0..1) jako „wêdrowna œrednia” wezwañ
-  //Prawdopodobieñstwa mog¹ byæ naprawdê od 0..1 i moga byæ "zmieszane", wiêc kultury te¿. Choæ w podstawowym modelu same 1
+  //double Agres;// Bulizm (0..1) skï¿½onnoï¿½ï¿½ do atakowania
+  //double Honor;// Bezwarunkowa honorowoï¿½ï¿½ (0..1) skï¿½onnoï¿½ï¿½ podjï¿½cia obrony
+  //double CallPolice;//Odium wzywacza policji - prawdopodobieï¿½stwo wzywania policji (0..1) jako ï¿½wï¿½drowna ï¿½redniaï¿½ wezwaï¿½
+  //Prawdopodobieï¿½stwa mogï¿½ byï¿½ naprawdï¿½ od 0..1 i moga byï¿½ "zmieszane", wiï¿½c kultury teï¿½. Choï¿½ w podstawowym modelu same 1
    if(Agres==0 && Honor==0 && CallPolice==0) //Racjonalny jest
 		Pom.add("Rational");
 
@@ -296,7 +299,7 @@ wbrtm::wb_pchar  HonorAgent::AgentCultureStr()  const
 
 inline
 unsigned  HonorAgent::AgentCultureMask() const
-//Zwraca maskê 3 bitow¹, pokazuj¹c¹ gdzie jest ró¿ne od 0. Aggr:1. bit, Honor:2.bit CallPoll:3.bit
+//Zwraca maskï¿½ 3 bitowï¿½, pokazujï¿½cï¿½ gdzie jest rï¿½ne od 0. Aggr:1. bit, Honor:2.bit CallPoll:3.bit
 {
 	unsigned Pom=0;
     if(Agres>0)
@@ -310,3 +313,13 @@ unsigned  HonorAgent::AgentCultureMask() const
 
    return Pom;
 }
+
+
+//Global simulation functions used in honor.exe but defined in HonorAgent.cpp
+
+void InitAtributes(FLOAT HowMany);
+void InitConnections(FLOAT HowManyFar);
+void DeleteAllConnections();
+void one_step(unsigned long& step_counter);
+void power_recovery_step();
+void Reset_action_memories();
