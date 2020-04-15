@@ -226,8 +226,8 @@ void      HonorAgent::lost_power(double delta)
 //Spadek si³y z zabezpieczeniem zakresu
 {                                  					assert(Power<=1);
 	 delta=fabs(delta);
-	 Power*=(1-delta);             					assert(Power>0);
-	 //if(Power<0) Power=0;
+	 Power*=(1-delta);             					//assert(Power>0);
+	 if(Power<0) Power=0;
 }
 
 HonorAgent::Decision  HonorAgent::check_partner(unsigned& x,unsigned& y)
