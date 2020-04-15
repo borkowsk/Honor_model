@@ -36,7 +36,9 @@ extern FLOAT    BULLI_POPUL;//=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 
 extern FLOAT	HONOR_POPUL;//=0.18;//0.3333;//Jaka cz�� agent�w populacji jest �ci�le honorowa
 extern FLOAT    CALLER_POPU;//=0.25;//Jaka cz�� wzywa policje zamiast si� poddawa�
 extern FLOAT    POLICE_EFFIC;//=0.50;//0.650;//0.950; //Z jakim prawdopodobie�stwem wezwana policja obroni agenta
-extern bool		ONLY3STRAT; //Czy tylko 3 strategie?
+extern bool		ONLY3STRAT;//=false; //Czy tylko 3 strategie?
+extern bool     InheritMAXPOWER;//=false;//Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?
+extern FLOAT    LIMITNOISE;//=0.3; //Mnożnik szumu
 
 //INNE GLOBALNE WLASCIWOSCI SWIATA
 #ifdef TESTING_RULE_LITERALS
@@ -130,7 +132,7 @@ class HonorAgent
 	////////////////////////////////////////////////////////////////////////////
 	HonorAgent();  //KONSTRUKTOR
 
-	void RandomReset(); //Losowanie warto�ci atrubut�w
+	void RandomReset(float POWLIMIT=0); //Losowanie warto�ci atrubut�w
 
 	//Obsluga po��cze�
 	bool addNeigh(unsigned x,unsigned y);//Dodaje sasiada o okreslonych wsp�rz�dnych w �wiecie, o ile zmie�ci

@@ -1,5 +1,4 @@
 ﻿// Prototypowy program "ewolucji" kultury honoru w kultur� policyjn�
-//                                                             wersja 21-08-2012
 ////////////////////////////////////////////////////////////////////////////////
 //#include <process.h> //nie ma w GCC?
 
@@ -24,7 +23,7 @@ using namespace std;
 using namespace wbrtm;
 
 const char* MODELNAME="Culture of honor";
-const char* VERSIONNUM="0.43d (08-11-2014)"
+const char* VERSIONNUM="0.45 (05-12-2014)"
 #ifdef TESTING_RULE_LITERALS
 " RulesTestDiv"
 #else
@@ -49,6 +48,7 @@ unsigned population_growth=1;//SPOSOBY ROZMNA�ANIA
 //POLICEEF=0 BULLYPR=.25 HONORPR=.11 CALLPRP=.22 MAXSTEP=10000 VISSTEP=10 GROWMODE=1 REPETITIONS=10
 //
 //ZMIANY:
+//0.45    - wersja z dziedziczeniem maksymalnej siły po rodzicu
 //0.43    - wersja z TEST_DIVIDER'em stałych w regułach agenta
 //0.39a   - wprowadzenie z powrotem spontanicznej agresywno�ci honorowych
 //0.38abc - wprowadzenie mapy miary zr�nicowania dodatkowo obok mapy proporcji i mapy �redniej si�y
@@ -120,10 +120,12 @@ FLOAT    AGRES_AGRESSION=0.01250;//POZIOM PRZYPADKOWEJ AGRESJI AGRESYWNYCH (bez 
 
 #ifdef TESTING_RULE_LITERALS
 FLOAT	 TEST_DIVIDER=1.0; //Służy do modyfikacji stałych liczbowych używanych w regułach reakcji agenta
-                                // wersja ze zmienną istotnie SPOWALNIA model
+								// wersja ze zmienną istotnie SPOWALNIA model
 #endif  //Ale może być też jako stała "rozliczana" podczas kompilacji
 
 FLOAT    RECOVERY_POWER=0.005;//Jak� cz�� si�y odzyskuje w kroku
+bool     InheritMAXPOWER=false;//Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?
+FLOAT    LIMITNOISE=0.3; //Mnożnik szumu
 
 //DEFINICJE ROZK�AD�W WARTO�CI DLA INDYWIDUALNYCH CECH AGENT�W
 FLOAT    BULLI_POPUL=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk�ad sterowany BULLISM_LIMIT
@@ -132,6 +134,7 @@ FLOAT	 HONOR_POPUL=0.25;//0.10;//.17;0.33;//Jaka cz�� agent�w populacji je
 FLOAT    CALLER_POPU=0.25;//0.10;//.17;       //Jaka cz�� wzywa policje zamiast si� poddawa�
 FLOAT    POLICE_EFFIC=0.05;//0.05;//0.33;0.5//0.650;//0.950; //Z jakim prawdopodobie�stwem wezwana policja obroni agenta
 bool     ONLY3STRAT=false; //Czy nie u�ywamy strategii "racjonalnej"?
+
 
 //Eksploracja przestrzeni parametr�w
 bool  Compensation_mode=true;//Czy przestrze� gdzie Honorowi i CallPolice, albo Agresywni i Honorowi uzupe�niaj� si� do PROP_MAX
@@ -182,14 +185,15 @@ long int RandSeed=-1; //Ewentualny zasiew liczby losowej
 OptionalParameterBase* Parameters[]={ //sizeof(Parameters)/sizeof(Parameters[])
 new ParameterLabel("PARAMETERS FOR SINGLE SIMULATION"),
 new OptionalParameter<long>(RandSeed,1,0x01FFFFFF,"RANDSEED","Use, if you want the same simulation many times"),//Zasiewanie liczby losowej
-new OptionalParameter<unsigned>(population_growth,0,3,"GROWMODE","How population growth?\n\t  0-as initial distribution, 1-local distribution, 3-global distribution\n\t "),
-new OptionalParameter<bool>(HonorAgent::CzyTorus,false,true,"TORUS","Is the world topology toroidal or not"), //Czy geometria torusa czy wyspy z brzegami
-new OptionalParameter<bool>(MAFIAHONOR ,false,true,"FAMILIES","Is a family relationship taken into account in reputation changes?"),//Czy u�ywamy mechanizmu rodzinnego zmian reputacji
 new OptionalParameter<FLOAT>(MORTALITY,0,0.05,"MORTALITY","Ratio of agents randomly killed each step by other factors"), //Jakie jest prawdopodobienstwo przypadkowej �mierci
 new OptionalParameter<FLOAT>(EXTERNAL_REPLACE,0,0.05,"EXTREPLACE","Ratio of agents randomly replaced by random newcomers every step"), //Wymiana imigracyjno/emigracyjna MA�A MA BY�!
 new OptionalParameter<FLOAT>(USED_SELECTION,0,0.75,"SELECTION","Minimal level of strenght required to survive"),//0.10; //Jak bardzo przegrani umieraj� (0 - brak selekcji w og�le)
 new OptionalParameter<FLOAT>(HONOR_AGRESSION,0,0.15,"HONAGRES","Probability of random agresion of HONOR agents"),//0.015;//Bazowy poziom agresji zale�ny od honoru
 new OptionalParameter<FLOAT>(AGRES_AGRESSION,0,0.15,"AGRAGRES","Probability of random agresion of AGRESSIVE agents"),//0.015;//Bazowy poziom agresji zale�ny od honoru
+new OptionalParameter<unsigned>(population_growth,0,3,"GROWMODE","How population growth?\n\t  0-as initial distribution, 1-local distribution, 3-global distribution\n\t "),
+new OptionalParameter<bool>(HonorAgent::CzyTorus,false,true,"TORUS","Is the world topology toroidal or not"), //Czy geometria torusa czy wyspy z brzegami
+new OptionalParameter<bool>(InheritMAXPOWER,false,true,"INHERITPOWER","Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?"),
+new OptionalParameter<bool>(MAFIAHONOR,false,true,"FAMILIES","Is a family relationship taken into account in reputation changes?"),//Czy u�ywamy mechanizmu rodzinnego zmian reputacji
 #ifdef TESTING_RULE_LITERALS
 new OptionalParameter<FLOAT>(TEST_DIVIDER,1.0/3.0,1.0,"TEST_DIVIDER","For testing real meaning of litera values used in rules"),
 #endif
@@ -264,11 +268,18 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 	if(RandSeed>0)
 		o<<SEP<<"RANDSEED:"<<SEP<<RandSeed;
 	o<<ENDL<<Comment.c_str()<<ENDL;// Comment
-#ifndef unix
+
+#ifdef __BORLANDC__
 	for(int i=0;i<_argc;i++)
 		o<<_argv[i]<<SEP;
 	o<<ENDL;
 #endif
+#ifdef _MSC_VER /*MSVC*/
+	for(int i=0;i<__argc;i++)
+		o<<__argv[i]<<SEP;
+	o<<ENDL;
+#endif
+
 	o<<"uint"<<SEP<<"SIDE"<<SEP<<SIDE<<ENDL;//SIDE*SIDE to rozmiar �wiata symulacji
 	o<<"bool"<<SEP<<"TORUS"<<SEP<<(HonorAgent::CzyTorus?"true":"false")<<ENDL;
 
@@ -280,6 +291,9 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 	o<<"FLOAT"<<SEP<<"AGRES_AGRESSION"<<SEP<<AGRES_AGRESSION<<ENDL;//0.950;
 	o<<"FLOAT"<<SEP<<"EXTERNAL_REPLACE"<<SEP<<EXTERNAL_REPLACE<<ENDL;
 	o<<"FLOAT"<<SEP<<"MORTALITY"<<SEP<<MORTALITY<<ENDL;
+
+	o<<"bool"<<SEP<<"INHPOWLIMIT"<<SEP<<InheritMAXPOWER<<ENDL;//Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?
+	o<<"FLOAT"<<SEP<<"LIMITNOISE"<<SEP<<LIMITNOISE<<ENDL; //Mnożnik szumu
 
 	if(batch_mode)
 	{
@@ -832,7 +846,9 @@ int main(int argc,const char* argv[])
 		<<endl;
 	cout<<"Use -help for graphics setup information,\nor HELP for information about available parameters."<<endl;
 	if(OptionalParameterBase::parse_options(argc,argv,Parameters,sizeof(Parameters)/sizeof(Parameters[0])))
-			return 1;
+	{
+			exit(222);
+	}
 
 	mouse_activity(1);
 	set_background(255);

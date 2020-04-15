@@ -79,14 +79,18 @@ bool HonorAgent::addNeigh(unsigned x,unsigned y)
    else return false;
 }
 
-void HonorAgent::RandomReset()
-//Losowanie warto�ci atrubut�w
+void HonorAgent::RandomReset(float iPOWLIMIT)
+//Losowanie wartosci atrubutow
 {
 		this->ID=++licznik_zyc;
 		this->HisActions.Reset();
 		this->HisLifeTime=0;
 
-		PowLimit=(DRAND()+DRAND()+DRAND()+DRAND()+DRAND()+DRAND())/6;  // Jak� si�� mo�e osi�gn�� maksymalnie, gdy nie traci
+		if(iPOWLIMIT>0)
+			PowLimit=iPOWLIMIT;
+		else
+			PowLimit=(DRAND()+DRAND()+DRAND()+DRAND()+DRAND()+DRAND())/6;  // Jak� si�� mo�e osi�gn�� maksymalnie, gdy nie traci
+
 		Power=(0.5+DRAND()*0.5)*PowLimit; //  zawsze przynajmniej 0.5 limitu si�y
 		HonorFeiRep=Power;//DRAND()*Power, a kiedy� by�o te� DRAND()*0.5 te�. Potem uproszczone do Power;  //Reputacja wojownika wygl�du i z realnych konfrontacji
 													assert(0<=HonorFeiRep);
@@ -114,6 +118,7 @@ void HonorAgent::RandomReset()
 			else
 			CallPolice=0;
 */
+
 		//Agres, Honor, CallPolice alternatywnie, ale czli jeden z prawdopodobie�stwem 1 a reszta 0.   WA�NE UPROSZCZENIE!
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 																				assert(fabs(BULLI_POPUL)<1);
@@ -497,12 +502,22 @@ void power_recovery_step()
 			unsigned ktory=RANDOM(Ag.NeighSize()),xx,yy;
 			bool pom=Ag.getNeigh(ktory,xx,yy);
 			HonorAgent& Rodzic=HonorAgent::World[yy][xx];
+
 			if(Rodzic.Power>0) //Tylko wtedy mo�e si� rodzi�! NEW TODO Check  - JAK NIE TO ROZLICZNIE NA PӏNIEJ
 			{
 			 if(MAFIAHONOR)//Je�eli s� stosunki rodzinne to �mier� ma r�ne konsekwencje
 				Ag.SmiercDona();
 
-			 Ag.RandomReset();
+			 if(InheritMAXPOWER)
+			 {
+				float NewLimit=Rodzic.PowLimit + LIMITNOISE *Rodzic.PowLimit*(( (DRAND()+DRAND()+DRAND()+DRAND()+DRAND()+DRAND())/6 ) - 0.5);
+                																assert(NewLimit>0);
+				if(NewLimit>1) NewLimit=1;//Zerowy nie będzie, ale może przekraczać 1
+				Ag.RandomReset(NewLimit);
+			 }
+			 else
+				Ag.RandomReset();
+
 			 Ag.Agres=Rodzic.Agres;
 			 Ag.Honor=Rodzic.Honor;
 			 Ag.CallPolice=Rodzic.CallPolice;
