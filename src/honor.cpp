@@ -1,7 +1,11 @@
-﻿// Prototypowy program "ewolucji" kultury honoru w kultur� policyjn�
+﻿// Culture of honor evolution
+// 
+// The Evolutionary Basis of Honor Cultures
+// Contributors:
+//    Andrzej Nowak Michele Gelfand Wojciech Borkowski 
 ////////////////////////////////////////////////////////////////////////////////
 //#include <process.h> //nie ma w GCC?
-
+#define PUBLIC_2015  //Public release for OSF
 #define _USE_MATH_DEFINES //bo M_PI
 
 #include <cmath>
@@ -23,7 +27,7 @@ using namespace std;
 using namespace wbrtm;
 
 const char* MODELNAME="Culture of honor";
-const char* VERSIONNUM="0.45 (05-12-2014)"
+const char* VERSIONNUM="0.98a (03-08-2015)"
 #ifdef TESTING_RULE_LITERALS
 " RulesTestDiv"
 #else
@@ -34,86 +38,88 @@ const char* VERSIONNUM="0.45 (05-12-2014)"
 #endif
 "";
 
-bool  batch_mode=false;       //Czy tryb pracy przeszukiwania przestrzeni parametr�w?
-enum  BATCH_MODES {NO_BAT=0,BAT_SELECTION=1,BAT_HONORvsCPOLL=2,BAT_HONORvsAGRR=3} batch_sele=BAT_SELECTION;	//Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
+bool  batch_mode=false;       //Czy tryb pracy przeszukiwania przestrzeni parametrów?
+enum  BATCH_MODES {NO_BAT=0,BAT_SELECTION=1,BAT_HONORvsCPOLL=2,BAT_HONORvsAGRR=3} 
+		batch_sele=BAT_SELECTION;	//Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
 const char*  batch_names[]={"NO_BAT","Bt_SEL","Bt_HvC","Bt_HvA"}; //for batch_names[batch_sele]
-const BATCH_MODES batch_vals[]={NO_BAT,BAT_SELECTION,BAT_HONORvsCPOLL,BAT_HONORvsAGRR};//W zasadzie nadmiarowe. Do OptEnumParam
+const BATCH_MODES batch_vals[]={NO_BAT,BAT_SELECTION,BAT_HONORvsCPOLL,BAT_HONORvsAGRR};//For OptEnumParam
 
-unsigned population_growth=1;//SPOSOBY ROZMNA�ANIA
-							 // 0 - wg. inicjalnych proporcji
-							 // 1 - lokalne rozmazanie losowe s�siad
-							 // 2 - lokalne rozmazanie proporcjonalne do sily  //NIE ZAIMPLEMENTOWANE!
-							 // 3 - globalne, losowy ziutek z ca�o�ci
-// Przykladowa lista parametr�w:
+unsigned population_growth=1;//How population growth? (SPOSOBY ROZMNAŻANIA)
+							 // 0-as initial distribution, (0 - wg. inicjalnych proporcji) 
+							 // 1-as local distribution, (1 - lokalne rozmazanie losowe sąsiad)
+							 // 2-NOT IMPLEMENTED		 (2 - lokalne rozmazanie proporcjonalne do siły)
+							 // 3-as global distribution (3 - globalne, losowy Ziutek z całości)
+// Przykładowa lista parametrów:
 //POLICEEF=0 BULLYPR=.25 HONORPR=.11 CALLPRP=.22 MAXSTEP=10000 VISSTEP=10 GROWMODE=1 REPETITIONS=10
 //
 //ZMIANY:
+//0.99    - wersja do upublicznienia na OSF
 //0.45    - wersja z dziedziczeniem maksymalnej siły po rodzicu
 //0.43    - wersja z TEST_DIVIDER'em stałych w regułach agenta
-//0.39a   - wprowadzenie z powrotem spontanicznej agresywno�ci honorowych
-//0.38abc - wprowadzenie mapy miary zr�nicowania dodatkowo obok mapy proporcji i mapy �redniej si�y
-//        ale wariacja liczona pomi�dzy krokiem a jego bezpo�rednim poprzednikiem jest bardzo ma�a.
-//		  ei�c wprowadzono parametr  PREVSTEP ustawiony na 80 (cz�ciej ni� co 100 krok�w i tak nie liczy w trybie przestrzeni parametr�w)
-//        POPRAWIONO LICZENIE KROK�W W D�UGICH EKSPERYMENTACH PRZESTRZENI PARAMETR�W!
-//        Wprowadzono parametr ONLY3STRAT do testowania zubo�onej wersji modelu (bez racjonalnych)
-//		  i wyprowadzenie PREVSTEP  i ONLY3STRAT jako parametr�w wywo�ania.
+//0.39a   - wprowadzenie z powrotem spontanicznej agresywności honorowych
+//0.38abc - wprowadzenie mapy miary zróżnicowania dodatkowo obok mapy proporcji i mapy średniej siły
+//        ale wariacja liczona pomiędzy krokiem a jego bezpośrednim poprzednikiem jest bardzo mała.
+//		  Wprowadzono parametr  PREVSTEP ustawiony na 80 (częściej niż co 100 kroków i tak nie liczy w trybie przestrzeni parametrów)
+//        POPRAWIONO LICZENIE KROKÓW W DŁUGICH EKSPERYMENTACH PRZESTRZENI PARAMETRÓW!
+//        Wprowadzono parametr ONLY3STRAT do testowania zubożonej wersji modelu (bez racjonalnych)
+//		  i wyprowadzenie PREVSTEP  i ONLY3STRAT jako parametrów wywołania.
 //0.37a - statystyki po akcji po grupach. Inne defaulty startowe
 //		  rozbudowanie statystyk akcji wypisywanych do logu
-//		  testowanie mo�liwo�ci modelu ze �miertelno�ci�
+//		  testowanie możliwości modelu ze śmiertelności
 //0.36b - drobne zmiany w tekstach konsolowych (29-01-2014)
-//0.36a - drobne zmiany na wydrukach konsoli i zwi�zane z kompilacj� pod MSVC++
-//      - wyb�r prostego wy�wietlania w g��wnym oknie  (25-09-2013)
+//0.36a - drobne zmiany na wydrukach konsoli i związane z kompilacją pod MSVC++
+//      - wybór prostego wyświetlania w głównym oknie  (25-09-2013)
 //DO RAPORTU 2013
-//0.35c - u�ycie clasy OptEnumParam dla niekt�rych parametr�w wywo�ania
-//0.35b - i stworzenie automatycznego generatora nazw plik�w log i bitmap.
-//0.35  - ostateczna implementacja "MAFII" dwupoziomowej (pokrewie�stwo do dwu poziom�w przodk�w liczy si� jako rodzina)
-//		  Wyprowadzenie tego jako parametru. Zmiana parametr�w nazw LOG�w z char* na wb_pchar
-//        (trzeba by�o rozbudowa� klas� OptParam.
-//0.31  - podzia� na osobne �r�d�a w celu implementacji rodzinnego honoru. "b" - implementacja "mafii"
-//0.30a - r�ne zmiany w sposobie wyprowadzania danych tekstowych i trzeci rodzaj eksploracji przestrzeni
-//0.28aa- pocz�tek tworzenia trzeciego rodzaju przekroju przestrzeni parametr�w, oraz poprawki
+//0.35c - użycie klasy OptEnumParam dla niektórych parametrów wywołania
+//0.35b - i stworzenie automatycznego generatora nazw plików log i bitmap.
+//0.35  - ostateczna implementacja "MAFII" dwupoziomowej (pokrewieństwo do dwu poziomów przodków liczy się jako rodzina)
+//		  Wyprowadzenie tego jako parametru. Zmiana parametrów nazw logów z char* na wb_pchar
+//        (trzeba było rozbudować klasę OptParam.
+//0.31  - podział na osobne źródła w celu implementacji rodzinnego honoru. "b" - implementacja "mafii"
+//0.30a - różne zmiany w sposobie wyprowadzania danych tekstowych i trzeci rodzaj eksploracji przestrzeni
+//0.28aa- początek tworzenia trzeciego rodzaju przekroju przestrzeni parametrów, oraz poprawki
 //0.27  - wykres przestrzeni selekcja x polic.effic.
 //0.2631 - Drobne poprawki???
-//0.263 - Wi�kszo�� parametr�w obs�ugiwana przez szablon klasy z "OptParam"
-//0.262 - WA�NE - WIMPowie patrz� teraz nie na swoj� realn� si��, ale na w�asn� reputacje,
-//		  wi�c de facto poza dzieci�stwem prawdopodobnie nigdy si� nie broni�
-//		  Techniczne - wprowadzenie u�ycia klasy parametr�w do obs�ugi parametr�w modelu
+//0.263 - Większość parametrów obsługiwana przez szablon klasy z "OptParam"
+//0.262 - WAŻNE – również WIMPowie patrzą teraz nie na swoje realne siły, ale na własną reputacje,
+//		  więc de facto poza dzieciństwem prawdopodobnie nigdy się nie bronią
+//		  Techniczne - wprowadzenie użycia klasy parametrów do obsługi parametrów modelu
 //DO RAPORTU 2012
-//0.26 -  Wykres przestrzeni - w proporcji honorowych i policyjnych do siebie dziel�cych 1/2 lub 2/3 ca�o�ci.
-//		  Inny spos�b kolorowania "kultur" na obrazie �wiata symulacji (czerwony-agresja, zielony-honor, niebieski-callPolice)
-//		  Pr�ba zmiany rozk�adu �omotu dla GIVEUP - �eby mogli zgin��, ale bardziej niszczy bullys!?!?
-//		  Do ewolucji potrzebny szumowe �mierci - parametr NOISE_KILL
+//0.26 -  Wykres przestrzeni - w proporcji honorowych i policyjnych do siebie dzielących 1/2 lub 2/3 całości.
+//		  Inny sposób kolorowania "kultur" na obrazie świata symulacji (czerwony-agresja, zielony-honor, niebieski-callPolice)
+//		  Próba zmiany rozkładu �omotu dla GIVEUP - żeby mogli zginąć, ale bardziej niszczy bullys!?!?
+//		  Do ewolucji potrzebny szumowe śmierci - parametr NOISE_KILL
 //		  ewolucja:
-//		  - lokalne rozmazanie losowe s�siad
-//		  TODO  - losowy ziutek z ca�o�ci
-//		  TODO  - lokalne rozmazanie proporcjonalne do sily
-//		  Statystyki: ile razy agent jest atakowany i ile razy wygra� ,
+//		  - lokalne rozmazanie losowe sąsiad
+//		  TODO  - losowy Ziutek z całości
+//		  TODO  - lokalne rozmazanie proporcjonalne do siły
+//		  Statystyki: ile razy agent jest atakowany i ile razy wygrał ,
 //						klastering index dla kultur
-//        Czesto�ci atak�w na poszczeg�lne grupy w czasie - bez selekcji, zysk indywidualny
-//        Du�a mapa z gradientem policji
+//        Czestości ataków na poszczególne grupy w czasie - bez selekcji, zysk indywidualny
+//        Duża mapa z gradientem policji
 //
-//		  ewentualnie r�na aktywnosc honorowych. Nie zawsze musz� stawa�, ale z prawdopodobienstwem
-//		 NA POZNIEJ: ilo�� policji zale�y od ilo�ci atak�w? Inny model - podatkowy.
+//		  ewentualnie różna aktywność honorowych. Nie zawsze muszą stawać, ale z prawdopodobieństwem
+//		 NA PÓŹNIEJ: ilość policji zależy od ilości ataków? Inny model – podatkowy – NIE TYM RAZEM.
 //
-//0.251 - poprawienie b��du w liczeniu "always give up" na metryczce pliku log
+//0.251 - poprawienie błędu w liczeniu "always give up" na metryczce pliku log
 //
-//0.25 - wprowadzenie statystyk z si�y r�nych grup (najwy�szy decyl tylko)
-//		 i ich drukowania do pliku i na konsol�
-//		 Uelastycznienie wydruku metryczki, �eby nadawa�a si� i do pionu i do poziomu ...
+//0.25 - wprowadzenie statystyk z siły rónych grup (najwyższy decyl tylko)
+//		 i ich drukowania do pliku i na konsoli.
+//		 Uelastycznienie wydruku metryczki, żeby nadawała się i do pionu i do poziomu ...
 //		 WPROWADZENIE TRYBU PRZESZUKIWANIA PRZESTRZENI PARAMETR�W
 //		 W tym ZAPISU BITMAP Z WYNIKAMI
-//0.24 - wprowadzenie parametru RATIONALITY, bo u�ycie w pe�ni realistycznej oceny si�y psuje selekcje
-//		 Zmiany kosmetyczne w nag��wku pliku wyj�ciowego
-//0.23 - znaj� swoj� realn� si�� i j� por�wnuj� z reputacj� drugiego gdy maj� atakowa� lub si� broni�
-//		 Ale to nie dzia�a�o dobrze...
-//0.20 - pierwsza wersja w pe�ni dzia�aj�ca
+//0.24 - wprowadzenie parametru RATIONALITY, bo użycie w pełni realistycznej oceny siły psuje selekcje
+//		 Zmiany kosmetyczne w nagłówku pliku wyjściowego
+//0.23 - znają swoją realną siłę i ją porównują z reputacją drugiego gdy mają atakować lub się bronić. Ale to nie działało dobrze...
+//0.20 - pierwsza wersja w pełni działająca
+
 
 
 
 //INNE GLOBALNE WLASCIWOSCI SWIATA
 bool     MAFIAHONOR=false; //Czy reputacja przenosi si� na cz�onk�w rodziny
-FLOAT    USED_SELECTION=0.050;//0.10; //Jak bardzo przegrani umieraj� (0 - brak selekcji w og�le)
-FLOAT    MORTALITY=0.0009;  //=0.01 //Jak �atwo mo�na zgin�� z przyczyn niespo�ecznych - horoba, wypadek itp. JAK 0 TO S� "ELFY"
+FLOAT    USED_SELECTION=0.20;//0.10; //Jak bardzo przegrani umieraj� (0 - brak selekcji w og�le)
+FLOAT    MORTALITY=0.0009;  //=0.01 //Jak �atwo mo�na zgin�� z przyczyn niespo�ecznych - choroba, wypadek itp. JAK 0 TO S� "ELFY"
 FLOAT    EXTERNAL_REPLACE=0.0001; //Jakie jest prawdopodobienstwo przypadkowej zamiany na zupe�nie innego
 FLOAT    HONOR_AGRESSION=0.01250;//0.015;//Bazowy poziom agresji dla HONOROWYCH
 FLOAT    AGRES_AGRESSION=0.01250;//POZIOM PRZYPADKOWEJ AGRESJI AGRESYWNYCH (bez calkulacji kto silniejszy!)
@@ -125,7 +131,7 @@ FLOAT	 TEST_DIVIDER=1.0; //Służy do modyfikacji stałych liczbowych używanych
 
 FLOAT    RECOVERY_POWER=0.005;//Jak� cz�� si�y odzyskuje w kroku
 bool     InheritMAXPOWER=false;//Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?
-FLOAT    LIMITNOISE=0.3; //Mnożnik szumu
+FLOAT    LIMITNOISE=0.3; //Mnożnik szumu przy dziedziczeniu maksymalnej siły po rodzicu
 
 //DEFINICJE ROZK�AD�W WARTO�CI DLA INDYWIDUALNYCH CECH AGENT�W
 FLOAT    BULLI_POPUL=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk�ad sterowany BULLISM_LIMIT
@@ -133,7 +139,7 @@ FLOAT    BULLI_POPUL=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduj
 FLOAT	 HONOR_POPUL=0.25;//0.10;//.17;0.33;//Jaka cz�� agent�w populacji jest �ci�le honorowa
 FLOAT    CALLER_POPU=0.25;//0.10;//.17;       //Jaka cz�� wzywa policje zamiast si� poddawa�
 FLOAT    POLICE_EFFIC=0.05;//0.05;//0.33;0.5//0.650;//0.950; //Z jakim prawdopodobie�stwem wezwana policja obroni agenta
-bool     ONLY3STRAT=false; //Czy nie u�ywamy strategii "racjonalnej"?
+bool     ONLY3STRAT=false; //Czy nie używamy strategii "racjonalnej"?
 
 
 //Eksploracja przestrzeni parametr�w
@@ -157,7 +163,7 @@ unsigned RepetNum=1; //Kt�ra to kolejna repetycja?  - NIE ZMIENIA� R�CZNIE
 unsigned STOP_AFTER=60000;//Po jakim czasie staje automatycznie
 unsigned STAT_AFTER=0; //Po jakim czasie zacz�� zlicza� koncow� statystyk�
 unsigned PREVSTEP=80;//Ile krok�w przed g��wn� statystyk� wylicza� poprzedni stan dla wariacji
-unsigned EveryStep=10;//Cz�stotliwo�� wizualizacji i zapisu do logu
+unsigned EveryStep=50;//Cz�stotliwo�� wizualizacji i zapisu do logu
 					 //Ujemne oznacza tryb automatycznej inkrementacji
 unsigned DumpStep=10000;//Cz�sto�� zrzut�w stan�w agent�w
 
@@ -185,20 +191,22 @@ long int RandSeed=-1; //Ewentualny zasiew liczby losowej
 OptionalParameterBase* Parameters[]={ //sizeof(Parameters)/sizeof(Parameters[])
 new ParameterLabel("PARAMETERS FOR SINGLE SIMULATION"),
 new OptionalParameter<long>(RandSeed,1,0x01FFFFFF,"RANDSEED","Use, if you want the same simulation many times"),//Zasiewanie liczby losowej
-new OptionalParameter<FLOAT>(MORTALITY,0,0.05,"MORTALITY","Ratio of agents randomly killed each step by other factors"), //Jakie jest prawdopodobienstwo przypadkowej �mierci
+new OptionalParameter<FLOAT>(MORTALITY,0,0.05,"MORTALITY","Ratio of agents randomly killed each step by other factors"), //Jakie jest prawdopodobieństwo przypadkowej śmierci
 new OptionalParameter<FLOAT>(EXTERNAL_REPLACE,0,0.05,"EXTREPLACE","Ratio of agents randomly replaced by random newcomers every step"), //Wymiana imigracyjno/emigracyjna MA�A MA BY�!
-new OptionalParameter<FLOAT>(USED_SELECTION,0,0.75,"SELECTION","Minimal level of strenght required to survive"),//0.10; //Jak bardzo przegrani umieraj� (0 - brak selekcji w og�le)
-new OptionalParameter<FLOAT>(HONOR_AGRESSION,0,0.15,"HONAGRES","Probability of random agresion of HONOR agents"),//0.015;//Bazowy poziom agresji zale�ny od honoru
-new OptionalParameter<FLOAT>(AGRES_AGRESSION,0,0.15,"AGRAGRES","Probability of random agresion of AGRESSIVE agents"),//0.015;//Bazowy poziom agresji zale�ny od honoru
+new OptionalParameter<FLOAT>(USED_SELECTION,0,0.75,"SELECTION","Minimal level of strength required to survive"),//0.10; //Jak bardzo przegrani umieraj� (0 - brak selekcji w og�le)
+new OptionalParameter<FLOAT>(HONOR_AGRESSION,0,0.15,"HONAGRES","Probability of random aggression of HONOR agents"),//0.015;//Bazowy poziom agresji zale�ny od honoru
+new OptionalParameter<FLOAT>(AGRES_AGRESSION,0,0.15,"AGRAGRES","Probability of random aggression of AGGRESSIVE agents"),//0.015;//Bazowy poziom agresji zale�ny od honoru
+#ifndef PUBLIC_2015
 new OptionalParameter<unsigned>(population_growth,0,3,"GROWMODE","How population growth?\n\t  0-as initial distribution, 1-local distribution, 3-global distribution\n\t "),
 new OptionalParameter<bool>(HonorAgent::CzyTorus,false,true,"TORUS","Is the world topology toroidal or not"), //Czy geometria torusa czy wyspy z brzegami
-new OptionalParameter<bool>(InheritMAXPOWER,false,true,"INHERITPOWER","Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?"),
-new OptionalParameter<bool>(MAFIAHONOR,false,true,"FAMILIES","Is a family relationship taken into account in reputation changes?"),//Czy u�ywamy mechanizmu rodzinnego zmian reputacji
+new OptionalParameter<bool>(InheritMAXPOWER,false,true,"INHERITPOWER","Do new agents inherit (with noise) max power from its parent?"),
+new OptionalParameter<bool>(MAFIAHONOR,false,true,"FAMILIES", "Is a family relationship taken into account in reputation changes?"),//Czy u�ywamy mechanizmu rodzinnego zmian reputacji
 #ifdef TESTING_RULE_LITERALS
-new OptionalParameter<FLOAT>(TEST_DIVIDER,1.0/3.0,1.0,"TEST_DIVIDER","For testing real meaning of litera values used in rules"),
+new OptionalParameter<FLOAT>(TEST_DIVIDER,1.0/3.0,1.0,"TEST_DIVIDER","For testing real meaning of arbitrary values used in rules"),
+#endif
 #endif
 //FLOAT    RECOVERY_POWER=0.005;//Jak� cz�� si�y odzyskuje w kroku
-new OptionalParameter<FLOAT>(RECOVERY_POWER,0.00001,0.5,"RECPOWER","How fast agent recovery for after fight demage"),
+new OptionalParameter<FLOAT>(RECOVERY_POWER,0.00001,0.5,"RECPOWER","How fast agent recovery for fight damage"),
 new OptionalParameter<FLOAT>(POLICE_EFFIC,0,1,"POLICEEF","Probability of efficient police intervention"),//=0.50;//0.650;//0.950; //Z jakim prawdopodobie�stwem wezwana policja obroni agenta
 new OptionalParameter<FLOAT>(BULLI_POPUL,0,1,"BULLYPR","Initial probability to born as bully agent"),//=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk�ad sterowany BULLISM_LIMIT ("-" jest sygna�em zafiksowania w trybie batch
 new OptionalParameter<FLOAT>(HONOR_POPUL,0,1,"HONORPR","Initial probability to born as honor agent"),//=0.18;//0.3333;//Jaka cz�� agent�w populacji jest �ci�le honorowa
@@ -207,7 +215,7 @@ new OptionalParameter<FLOAT>(CALLER_POPU,0,1,"CALLPRP","Initial probability to b
 new OptionalParameter<bool>(ONLY3STRAT,false,true,"CALLPOLISREST","Is police callers the last strategies?"
 																	"\n\t\tIf not the rational strategies take the rest to 100%"),
 new ParameterLabel("PARAMETERS FOR MULTIPLE SIMULATIONS (EXPLORATION/BATCH MODE)"),
-new OptionalParameter<bool>(batch_mode,false,true,"BATCH","To switch into parametr space batch mode"),
+new OptionalParameter<bool>(batch_mode,false,true,"BATCH","To switch into parameter space batch mode"),
 //Nie ma jeszcze szablonu dla enumeracji wi�c chamski rzut na "unsigned int"
 //new OptionalParameter<unsigned>(*((unsigned*)&batch_sele),1,3,"BSELE","To switch batches bettwen SELECTION=1,HONORvsCPOLL=2,HONORvsAGRR=3"),
 //bool  batch_mode=true;       //Czy tryb pracy przeszukiwania przestrzeni parametr�w?
@@ -225,28 +233,30 @@ new OptionalParameter<FLOAT>(PROPORTION_MIN,0,1.0,"PROPMIN","Proportion explorat
 new OptionalParameter<FLOAT>(SELECTION_STEP,0,1.0,"SELESTEP","Selection exploration step"),//=0.1;
 new OptionalParameter<FLOAT>(SELECTION_MAX,0,1.0,"SELEMAX","Selection exploration maximum"),//=1;
 new OptionalParameter<FLOAT>(SELECTION_MIN,0,1.0,"SELEMIN","Selection exploration minimum"),//=0;
-new ParameterLabel("STATISTIC & SO... HOW MANY, HOW OFFTEN, WHERE"),
+new ParameterLabel("STATISTIC & SO... HOW MANY, HOW OFTEN, WHERE"),
 new OptionalParameter<unsigned>(REPETITION_LIMIT,1,1000,"REPETITIONS","How many repetitions for each settings we expect?"),
 new OptionalParameter<unsigned>(STAT_AFTER,1,1000000,"STATSTART","When start to calculate statistics in batch mode?"),
 new OptionalParameter<unsigned>(STOP_AFTER,1,1000000,"MAXSTEP","To stop each simulation after this number of steps"),
-new OptionalParameter<unsigned>(EveryStep,1,10000,   "VISSTEP","For set how offten visualisation and statistics occur?"),
-new OptionalParameter<unsigned>(DumpStep,1,1000000,  "DMPSTEP","For set how offten agents attributes and graphix view is dumped?"),
-new OptionalParameter<unsigned>(PREVSTEP,1,100,		 "PREVSTEP","When previous state for calculating of variatio is calculated?"),
+new OptionalParameter<unsigned>(EveryStep,1,10000,   "VISSTEP","For set how often visualisation and statistics occur?"),
+new OptionalParameter<unsigned>(DumpStep,1,1000000,  "DMPSTEP","For set how often agents attributes and graphix view is dumped?"),
+new OptionalParameter<unsigned>(PREVSTEP,1,100,		 "PREVSTEP","When previous state for calculating of variation is calculated?"),
 //new OptionalParameter<const char*>(LogName,"honor","HONOR","LOGNAME","Name for main log file"),
 //new OptionalParameter<const char*>(DumpNam,"honor_dump","DUMP","DUMPNAME","Name for detailed log file"),
 new OptionalParameter<wb_pchar>(LogName,wb_pchar("honor"),wb_pchar("HONOR"),"LOGNAME","Name for main log file"),
 new OptionalParameter<wb_pchar>(DumpNam,wb_pchar("honor_dump"),wb_pchar("DUMP"),"DUMPNAME","Name for detailed log file"),
-new OptionalParameter<string>(Comment,"bla bala bla","TEST#1","COMMENT","Comment for the experiment, will be put into log file"),
+new OptionalParameter<string>(Comment,"bla bla bla bla","TEST#1","COMMENT","Comment for the experiment, will be put into log file"),
 new ParameterLabel("VISUALISATION OPTIONS"),
 new OptionalParameter<bool>(ConsoleLog,  false,true, "CONSOLOG","To log events on console window"),
-new OptionalParameter<bool>(dump_screens,false,true, "DUMPSCR","Dump graphix screen after every visualisation frame"),
-new OptionalParameter<bool>(VisShorLinks,false,true, "VISSHORT","To visualise short links"),
-new OptionalParameter<bool>(VisFarLinks, false,true, "VISFARLN","To visualise far connections"),
-new OptionalParameter<bool>(VisAgents,   false,true, "VISAGENT","To visualise composed view of agents"),
+new OptionalParameter<bool>(dump_screens,false,true, "DUMPSCR","Dump graphics screen after every visualisation frame"),
+new OptionalParameter<bool>(VisShorLinks,false,true, "VISSHORT","To visualize short links"),
+new OptionalParameter<bool>(VisFarLinks, false,true, "VISFARLN","To visualize far connections"),
+new OptionalParameter<bool>(VisAgents,   false,true, "VISAGENT","To visualize composed view of agents"),
 new OptionalParameter<bool>(BatchPlotPower,false,true,"BATPOWER","To plot mean power during batch simulations"),
+#ifndef PUBLIC_2015
 new OptionalParameter<bool>(Batch_true_color,false,true,"BATTRCOL","To plot in true colors during batch sim."),
+#endif
 new OptionalParameter<unsigned>(VSIZ,3,20,"AGENTSIZ1","Side of an agent on the composed visualisation"), //Maksymalny rozmiar boku agenta w wizualizacji kompozytowej
-new OptionalParameter<unsigned>(SSIZ,1,5,"AGENTSIZ2","Side of an agent on the small visualisations"), //Bok agenta w wizualizacji uzupe�niaj�cej (ma�ej)
+new OptionalParameter<unsigned>(SSIZ,1,5,"AGENTSIZ2","Side of an agent on the small visualisations"), //Bok agenta w wizualizacji uzupełniającej (małej)
 new ParameterLabel("END OF LIST")
 };                                              // Comment PREVSTEP ONLY3STRAT
 
@@ -291,9 +301,10 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 	o<<"FLOAT"<<SEP<<"AGRES_AGRESSION"<<SEP<<AGRES_AGRESSION<<ENDL;//0.950;
 	o<<"FLOAT"<<SEP<<"EXTERNAL_REPLACE"<<SEP<<EXTERNAL_REPLACE<<ENDL;
 	o<<"FLOAT"<<SEP<<"MORTALITY"<<SEP<<MORTALITY<<ENDL;
-
+#ifndef PUBLIC_2015
 	o<<"bool"<<SEP<<"INHPOWLIMIT"<<SEP<<InheritMAXPOWER<<ENDL;//Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?
 	o<<"FLOAT"<<SEP<<"LIMITNOISE"<<SEP<<LIMITNOISE<<ENDL; //Mnożnik szumu
+#endif
 
 	if(batch_mode)
 	{
@@ -390,8 +401,8 @@ double MeanPower=0;
 double MeanAgres=0;
 double MeanHonor=0;
 
-extern unsigned LiczbaTrupow;
-extern unsigned LiczbaTrupowDzis;
+extern unsigned NumberOfKilled;
+extern unsigned NumberOfKilledToday;
 
 struct zliczacz
 {
@@ -529,7 +540,7 @@ void save_stat()
 			OutLog<<'\t'<<MnStrenght[i].N;
 
 		OutLog<<'\t'<<MeanAgres<<'\t'<<MeanHonor<<'\t'<<MeanCallPolice<<'\t'
-			  <<MeanFeiReputation<<'\t'<<MeanPower<<'\t'<<LiczbaTrupow<<'\t'
+			  <<MeanFeiReputation<<'\t'<<MeanPower<<'\t'<<NumberOfKilled<<'\t'
 			  <<      CoutersForAll.NOTHING<<'\t'<<      CoutersForAll.WITHDRAW<<'\t'<<      CoutersForAll.GIVEUP<<'\t'<<CoutersForAll.HOOK<<'\t'<<CoutersForAll.FIGHT<<'\t'<<CoutersForAll.CALLAUTH<<'\t'
 			  <<   CoutersForBullys.NOTHING<<'\t'<<   CoutersForBullys.WITHDRAW<<'\t'<<   CoutersForBullys.GIVEUP<<'\t'<<CoutersForBullys.HOOK<<'\t'<<CoutersForBullys.FIGHT<<'\t'<<CoutersForBullys.CALLAUTH<<'\t'
 			  <<   CoutersForHonors.NOTHING<<'\t'<<   CoutersForHonors.WITHDRAW<<'\t'<<   CoutersForHonors.GIVEUP<<'\t'<<CoutersForHonors.HOOK<<'\t'<<CoutersForHonors.FIGHT<<'\t'<<CoutersForHonors.CALLAUTH<<'\t'
@@ -544,7 +555,7 @@ void save_stat()
 
 		if(ConsoleLog)
 		{
-		  cout<<"STEP"<<setw(4)<<'\t'<<"MnAgres"<<'\t'<<"MnHonor"<<'\t'<<"MnFeiRep"<<'\t'<<"MnCallRep"<<'\t'<<"MnPower";
+		  cout<<"STEP"<<setw(4)<<'\t'<<"MnAggre"<<'\t'<<"MnHonor"<<'\t'<<"MnFeiRep"<<'\t'<<"MnCallRep"<<'\t'<<"MnPower";
 		  for(unsigned i=0;i<NumOfCounters;i++)
 					cout<<'\t'<<MnStrNam[i];
 		  cout<<endl;
@@ -564,7 +575,7 @@ void save_stat()
 		for(unsigned i=0;i<NumOfCounters;i++)
 			OutLog<<'\t'<<MnStrenght[i].N;
 
-		OutLog<<'\t'<<MeanAgres<<'\t'<<MeanHonor<<'\t'<<MeanCallPolice<<'\t'<<MeanFeiReputation<<'\t'<<MeanPower<<'\t'<<LiczbaTrupow<<'\t'
+		OutLog<<'\t'<<MeanAgres<<'\t'<<MeanHonor<<'\t'<<MeanCallPolice<<'\t'<<MeanFeiReputation<<'\t'<<MeanPower<<'\t'<<NumberOfKilled<<'\t'
 			  <<CoutersForAll.NOTHING<<'\t'<<CoutersForAll.WITHDRAW<<'\t'<<CoutersForAll.GIVEUP<<'\t'<<CoutersForAll.HOOK<<'\t'<<CoutersForAll.FIGHT<<'\t'<<CoutersForAll.CALLAUTH<<'\t'
 			  <<CoutersForBullys.NOTHING<<'\t'<<CoutersForBullys.WITHDRAW<<'\t'<<CoutersForBullys.GIVEUP<<'\t'<<CoutersForBullys.HOOK<<'\t'<<CoutersForBullys.FIGHT<<'\t'<<CoutersForBullys.CALLAUTH<<'\t'
 			  <<CoutersForHonors.NOTHING<<'\t'<<CoutersForHonors.WITHDRAW<<'\t'<<CoutersForHonors.GIVEUP<<'\t'<<CoutersForHonors.HOOK<<'\t'<<CoutersForHonors.FIGHT<<'\t'<<CoutersForHonors.CALLAUTH<<'\t'
@@ -601,7 +612,7 @@ void dump_step(wb_dynmatrix<HonorAgent>& World,unsigned step)
 	   Dumps<<"Ag_ID"<<TAB<<"Power"<<TAB<<"PowLimit"<<TAB
 				 <<"Reputation"<<TAB
 
-				 <<"ProAgresion"<<TAB
+				 <<"ProAggresion"<<TAB
 				 <<"ProHonor"<<TAB
 				 <<"ProCallPolice"<<TAB
 
@@ -671,7 +682,7 @@ void PrintHonorAgentInfo(ostream& o,const HonorAgent& H)
 // Drukowanie agenta do inspekcji
 {
 	o<<"Agent type:"<<H.AgentCultureStr().get()<<"\t\t";
-	o<<"Agression prob.: "<<H.Agres<<"\t";// Bulizm (0..1) sk�onno�� do atakowania
+	o<<"Aggression prob.: "<<H.Agres<<"\t";// Bulizm (0..1) sk�onno�� do atakowania
 	o<<"Honor: "<<H.Honor<<"\t";// Bezwarunkowa honorowo�� (0..1) sk�onno�� podj�cia obrony
 	o<<"Police call.: "<<H.CallPolice<<endl;//Odium wzywacza policji - prawdopodobie�stwo wzywania policji (0..1) jako �w�drowna �rednia� wezwa�
 	o<<endl;
@@ -679,7 +690,7 @@ void PrintHonorAgentInfo(ostream& o,const HonorAgent& H)
 	o<<"Feighter reputation: "<<H.GetFeiReputation()<<endl;//Reputacja wojownika jako �w�drowna �rednia� z konfrontacji (0..1)
 	o<<endl;
 	o<<"Life time: "<<"\t Succeses"<<"\t Fails"<<"\t Action counter"<<endl;
-	o<<'\t'<<H.HisLifeTime<<'\t'<<H.HisActions.Succeses<<'\t'<<H.HisActions.Fails<<'\t'<<H.HisActions.Counter<<endl;
+	o<<'\t'<<H.HisLifeTime<<'\t'<<H.HisActions.Successes<<'\t'<<H.HisActions.Fails<<'\t'<<H.HisActions.Counter<<endl;
 	o<<HonorAgent::Decision2str(HonorAgent::NOTHING)<<'\t'<<HonorAgent::Decision2str(HonorAgent::WITHDRAW)<<'\t'<<HonorAgent::Decision2str(HonorAgent::GIVEUP)<<'\t'<<HonorAgent::Decision2str(HonorAgent::HOOK)<<'\t'<<HonorAgent::Decision2str(HonorAgent::FIGHT)<<'\t'<<HonorAgent::Decision2str(HonorAgent::CALLAUTH)<<endl;
 	o<<'\t'<<H.HisActions.R_NOTHING()*100<<"%\t"<<H.HisActions.R_WITHDRAW()*100<<"%\t"<<H.HisActions.R_GIVEUP()*100<<"%\t"<<H.HisActions.R_HOOK()*100<<"%\t"<<H.HisActions.R_FIGHT()*100<<"%\t"<<H.HisActions.R_CALLAUTH()*100<<endl;
 	o<<endl;
@@ -805,9 +816,9 @@ void replot(wb_dynmatrix<HonorAgent>& World)
 		}
 	}
 
-	printc(1,screen_height()-char_height('X'),100,255,"%s MnAgres=%f  MnHonor=%f  MnPoli=%f Killed=%u  AllKilled=%u  ",
+	printc(1,screen_height()-char_height('X'),100,255,"%s MnAggr=%f  MnHonor=%f  MnPoli=%f Killed=%u  AllKilled=%u  ",
 										"COMPONENT VIEW",
-									double(MeanAgres),double(MeanHonor),double(MeanCallPolice),LiczbaTrupowDzis,LiczbaTrupow);
+									double(MeanAgres),double(MeanHonor),double(MeanCallPolice),NumberOfKilledToday,NumberOfKilled);
 	/*double MeanFeiReputation=0;
 double MeanCallPolice=0;
 double MeanPower=0;*/
@@ -900,7 +911,7 @@ int main(int argc,const char* argv[])
 	RANDOMIZE();//"Niepowtarzalnie" musi być z czasu (ale to jest z dokładnością do sekundy!!!)
 
 
-	if(batch_mode)//Tryb analizy przestrzeni parametr�w
+	if(batch_mode)//Tryb analizy przestrzeni parametrów
 	{
 		switch(batch_sele){ //Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
 		case BAT_SELECTION:walk_params_sele();break;//=1,
@@ -1251,10 +1262,10 @@ void walk_params_prop()
 							else
 							if (znak == '\n')
 								if(BatchPlotPower)
-									PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+									PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 									"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
 								else
-									PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+									PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 									"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
 						}
 				}
@@ -1284,24 +1295,24 @@ void walk_params_prop()
 			MeanPropOfOther[Y][X]=MnPropOfOther;
 
 			if(BatchPlotPower)
-				PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+				PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 						"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
 			else
-				PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+				PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 						"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
 	   }
    }
    //Zrobienie u�ytku z wynik�w
    clear_screen();
-   PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+   PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 						"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
    SaveScreen(STOP_AFTER);
    clear_screen();
-   PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+   PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 						"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
    SaveScreen(STOP_AFTER+1);
 
-   Write_tables(OutLog,"MnPowOfAgres",MeanPowerOfAgres,"MnPropOfAgres",MeanPropOfAgres);
+   Write_tables(OutLog,"MnPowOfAg",MeanPowerOfAgres,"MnPropOfAg",MeanPropOfAgres);
    Write_tables(OutLog,"MnPowOfHonor",MeanPowerOfHonor,"MnPropOfHonor",MeanPropOfHonor);
    Write_tables(OutLog,"MnPowOfPCall",MeanPowerOfPCall,"MnPropOfPCall",MeanPropOfPCall);
    Write_tables(OutLog,"MnPowOfOther",MeanPowerOfOther,"MnPropOfOther",MeanPropOfOther);
@@ -1438,13 +1449,13 @@ void walk_params_sele()
 							else
 							if (znak == '\n')
 								if(BatchPlotPower)
-									PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+									PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 									"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
 								else
 								{
-									//PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+									//PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 									//		"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
-									PlotTables("PropMnDiffOfAgres",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor,
+									PlotTables("PropMnDiffOfAg",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor,
 											"PropMnDiffOfPCall",PropMnDiffOfPCall,"PropMnDiffOfOther",PropMnDiffOfOther,Batch_true_color);
 								}
 						}
@@ -1484,33 +1495,33 @@ void walk_params_sele()
 			PropMnDiffOfOther[Y][X]=VariPropOfOther;
 
 			if(BatchPlotPower)
-				PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+				PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 						"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
 			else
-				PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+				PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 						"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
 	   }
    }
    //Zrobienie u�ytku z wynik�w
-   Write_tables(OutLog,"MnPowOfAgres",MeanPowerOfAgres,"MnPropOfAgres",MeanPropOfAgres);
+   Write_tables(OutLog,"MnPowOfAg",MeanPowerOfAgres,"MnPropOfAg",MeanPropOfAgres);
    Write_tables(OutLog,"MnPowOfHonor",MeanPowerOfHonor,"MnPropOfHonor",MeanPropOfHonor);
    Write_tables(OutLog,"MnPowOfPCall",MeanPowerOfPCall,"MnPropOfPCall",MeanPropOfPCall);
    Write_tables(OutLog,"MnPowOfOther",MeanPowerOfOther,"MnPropOfOther",MeanPropOfOther);
-   Write_tables(OutLog,"PropMnDiffOfAgres",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor);
+   Write_tables(OutLog,"PropMnDiffOfAg",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor);
    Write_tables(OutLog,"PropMnDiffOfPCall",PropMnDiffOfPCall,"PropMnDiffOfOther",PropMnDiffOfOther);
 
    clear_screen();
-   PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+   PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
               "MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
    SaveScreen(STOP_AFTER);
 
    clear_screen();
-   PlotTables("PropMnDiffOfAgres",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor,
+   PlotTables("PropMnDiffOfAg",PropMnDiffOfAgres,"PropMnDiffOfHonor",PropMnDiffOfHonor,
 			  "PropMnDiffOfPCall",PropMnDiffOfPCall,"PropMnDiffOfOther",PropMnDiffOfOther,Batch_true_color);
    SaveScreen(STOP_AFTER+2);
 
    clear_screen();
-   PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+   PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 			  "MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
    SaveScreen(STOP_AFTER+1);
 
@@ -1531,9 +1542,9 @@ void walk_honor_vs_agrr()
    unsigned Y=(SELECTION_MAX-SELECTION_MIN)/SELECTION_STEP   + 1;
    if(! (SELECTION_MIN+SELECTION_STEP*Y < SELECTION_MAX) )  //Operacja == nie dzia�a poprawnie na float
 										Y++;
-   cout<<"Agressive to honor proportion vs selection batch job: "<<Y<<" vs. "<<X<<" cells."<<endl;
+   cout<<"Aggressive to honor proportion vs selection batch job: "<<Y<<" vs. "<<X<<" cells."<<endl;
    Parameters_dump(OutLog);
-   OutLog<<"Agressive to honor proportion vs selection batch job: "<<Y<<" vs. "<<X<<" cells."<<endl;
+   OutLog<<"Aggressive to honor proportion vs selection batch job: "<<Y<<" vs. "<<X<<" cells."<<endl;
 
    wb_dynmatrix<FLOAT> MeanPowerOfAgres(Y,X);MeanPowerOfAgres.fill(-9999.0);
    wb_dynmatrix<FLOAT> MeanPowerOfHonor(Y,X);MeanPowerOfHonor.fill(-9999.0);
@@ -1633,10 +1644,10 @@ void walk_honor_vs_agrr()
 							else
 							if (znak == '\n')
 								if(BatchPlotPower)
-									PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+									PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 									"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
 								else
-									PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+									PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 									"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
 						}
 				}
@@ -1666,23 +1677,23 @@ void walk_honor_vs_agrr()
 			MeanPropOfOther[Y][X]=MnPropOfOther;
 
 			if(BatchPlotPower)
-				PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+				PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 						"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
 			else
-				PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+				PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 						"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
 	   }
    }
    //Zrobienie u�ytku z wynik�w
    clear_screen();
-   PlotTables("MnPowOfAgres",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
+   PlotTables("MnPowOfAg",MeanPowerOfAgres,"MnPowOfHonor",MeanPowerOfHonor,
 						"MnPowOfPCall",MeanPowerOfPCall,"MnPowOfOther",MeanPowerOfOther,Batch_true_color);
    SaveScreen(STOP_AFTER);
    clear_screen();
-   PlotTables("MnPropOfAgres",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
+   PlotTables("MnPropOfAg",MeanPropOfAgres,"MnPropOfHonor",MeanPropOfHonor,
 						"MnPropOfPCall",MeanPropOfPCall,"MnPropOfOther",MeanPropOfOther,Batch_true_color);
    SaveScreen(STOP_AFTER+1);
-   Write_tables(OutLog,"MnPowOfAgres",MeanPowerOfAgres,"MnPropOfAgres",MeanPropOfAgres);
+   Write_tables(OutLog,"MnPowOfAg",MeanPowerOfAgres,"MnPropOfAg",MeanPropOfAgres);
    Write_tables(OutLog,"MnPowOfHonor",MeanPowerOfHonor,"MnPropOfHonor",MeanPropOfHonor);
    Write_tables(OutLog,"MnPowOfPCall",MeanPowerOfPCall,"MnPropOfPCall",MeanPropOfPCall);
    Write_tables(OutLog,"MnPowOfOther",MeanPowerOfOther,"MnPropOfOther",MeanPropOfOther);
@@ -1799,8 +1810,8 @@ void fixed_params_mode()
 							InitConnections(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT);
 							InitAtributes(SIDE*SIDE);
 							step_counter=0;
-							LiczbaTrupow=0; //Troch� to partyzantka
-							LiczbaTrupowDzis=0;
+							NumberOfKilled=0; //Troch� to partyzantka
+							NumberOfKilledToday=0;
 							CalculateStatistics(HonorAgent::World); //Po raz pierwszy dla tej iteracji
 							OutLog<<"next"<<endl;
 							save_stat();
@@ -1837,13 +1848,13 @@ void Help()
 		"b - save screen to B-MP\n"
 		"d - d-ump on every visualisation\n"
 		"\n"
-		"1..0 visualisation freq.\n"
+		"1..0 visualisation frequency\n"
 		"c - swich c-onsole on/off\n"
 		"s - visualise s-hort links\n"
 		"f - visualise f-ar links\n"
 		"a - visualise a-gents\n"
 		"e - visualise d-e-cisions\n"
-		"p - visualise rep-u-tations\n"
+		"u - visualise rep-u-tations\n"
 		"\n"
 		"mouse left or right - \n"
 		"     means inspection\n"
