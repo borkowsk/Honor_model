@@ -1,5 +1,5 @@
 // Prototypowy program "ewolucji" kultury honory w kulturê policyjn¹
-//                                                             wersja 22-04-2012
+//                                                             wersja 18-05-2012
 ////////////////////////////////////////////////////////////////////////////////
 #include <iostream>
 #include <fstream>
@@ -17,13 +17,19 @@ using namespace wbrtm;
 
 
 const char* MODELNAME="Culture of honor";
-const char* VERSIONNUM="0.22 (22-04-2012)";
+const char* VERSIONNUM="0.24 (19-05-2012)";
+//ZMIANY:
+//0.24 - wprowadzenie parametru RATIONALITY, bo u¿ycie w pe³ni realistycznej oceny si³y psuje selekcje
+//		 Zmiany kosmetyczne w nag³ówku pliku wyjœciowego
+//0.23 - znaj¹ swoj¹ realn¹ si³ê i j¹ porównuj¹ z reputacj¹ drugiego gdy maj¹ atakowaæ lub siê broniæ
 
 
 const unsigned SIDE=50;//SIDE*SIDE to rozmiar œwiata symulacji
-const float    POLICE_EFFIC=0.35;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
+const float    POLICE_EFFIC=0.00;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
 const float    USE_SELECTION=0.05;//0.05; //Czy bardzo przegrani umieraj¹
 const float    RECOVERY_POWER=0.01;//Jak¹ czêœæ si³y odzyskuje w kroku
+const float    RATIONALITY=0.0; //Jak realistycznie ocenia w³asn¹ si³ê (vs. wg. w³asnej reputacji)
+const float    RANDOM_AGRESSION=0.005;//Bazowy poziom agresji dla honorowych
 
 //LINKOWANIE
 const bool 	   TORUS=false; //Czy geometria torusa czy wyspy z brzegami
@@ -37,9 +43,10 @@ const unsigned MAX_LINKS=MOORE_SIZE + 2/*ZAPAS*/ + (FAR_LINKS/(SIDE*SIDE)? FAR_L
 //CECHY WRODZONE
 const float    BULLISM_LIMIT=-1;//0.2;//0.66;//0.10;//Maksymalny mo¿liwy bulizm.
 								//Jak ujemne to rozk³ad Pareto, jak dodatnie to dzwonowy
-const float    BULLI_POPUL=0.3300;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk³ad sterowany BULLISM_LIMIT
-const float	   HONOR_POPUL=0.3300;//Jaka czêœæ agentów populacji jest œciœle honorowa
-const float    CALLER_POPU=0.6600;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
+
+const float    BULLI_POPUL=0.3333;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 to decyduje rozk³ad sterowany BULLISM_LIMIT
+const float	   HONOR_POPUL=0.3333;//Jaka czêœæ agentów populacji jest œciœle honorowa
+const float    CALLER_POPU=0.3333;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
 								 //- musi byæ dwa razy wiêcej bo to udzia³ reszcie tych co nie s¹ agresywni i honorowi
 								 //Mo¿e te¿ jako „wêdrowna œrednia” wezwañ, ale na razie nie
 
@@ -47,7 +54,7 @@ const float    CALLER_POPU=0.6600;//Jaka czêœæ wzywa policje zamiast siê poddawa
 const double   SOCIAL_IMPACT_INTENSITY_PERCENT=0; //Jaka jest wzglêdna intensywnoœæ wp³ywu spo³ecznego. W procentach kroku MC g³ównej dynamiki. 0 oznacza brak
 
 //Sterowanie statystykami i powtórzeniami
-unsigned REPETITION_LIMIT=10;//10//Ile ma zrobiæ powtórzeñ tego samego eksperymentu
+unsigned REPETITION_LIMIT=1;//10//Ile ma zrobiæ powtórzeñ tego samego eksperymentu
 unsigned RepetNum=1; //Która to kolejna repetycja?  - NIE ZMIENIAÆ RÊCZNIE!
 unsigned STOP_AFTER=10000;//Po jakim czasie staje automatycznie
 unsigned EveryStep=10;//Czêstotliwoœæ wizualizacji i zapisu do logu
@@ -57,11 +64,13 @@ unsigned DumpStep=1000;//Czêstoœæ zrzutów stanów agentów
 //Parametry techniczne steruj¹ce wizualizacj¹ i wydrukami
 const unsigned VSIZ=5; //Maksymalny rozmiar boku agenta w wizualizacji kompozytowej
 const unsigned SSIZ=1; //Bok agenta w wizualizacji uzupe³niaj¹cej (ma³ej)
+
 bool  ConsoleLog=1;//Czy u¿ywa logowania zdarzeñ ma konsoli. Wa¿ne dla startu, potem siê da prze³¹czaæ
 bool  VisShorLinks=false; //Wizualizacja bliskich linków
-bool  VisFarLinks=false;	  //Wizualizacja dalekich
+bool  VisFarLinks=false;  //Wizualizacja dalekich
 bool  VisAgents=true;     //Wizualizacja w³aœciwoœci agentów
-bool dump_screens=false;
+bool  dump_screens=false;
+
 int   WB_error_enter_before_clean=0; //Czy daæ szanse operatorowi na poczytanie komunikatów koñcowych
 
 void Parameters_dump(ostream& o)
@@ -75,13 +84,19 @@ void Parameters_dump(ostream& o)
 	o<<"float"<<'\t'<<"USE_SELECTION"<<'\t'<<USE_SELECTION<<endl;
 	o<<"float"<<'\t'<<"RECOVERY_POWER"<<'\t'<<RECOVERY_POWER<<endl;//Jak¹ czêœæ si³y odzyskuje w kroku
 
-	if(BULLI_POPUL<1)
-		o<<"float"<<'\t'<<"BULLY_POPUL"<<'\t'<<BULLI_POPUL<<endl;//Albo zero-jedynkowo
+	if(BULLI_POPUL>=1)
+	o<<"float"<<'\t'<<"BULLISM_LIMIT"<<'\t'<<BULLISM_LIMIT<<endl;//Maksymalny mo¿liwy bulizm.
 	else
-		o<<"float"<<'\t'<<"BULLISM_LIMIT"<<'\t'<<BULLISM_LIMIT<<endl;//Maksymalny mo¿liwy bulizm.
+	{
+	o<<"float"<<'\t'<<"BULLY_POPUL"<<'\t'<<BULLI_POPUL<<endl;//Albo zero-jedynkowo
 	o<<"float"<<'\t'<<"HONOR_POPUL"<<'\t'<<HONOR_POPUL<<endl;//Jaka czêœæ agentów populacji jest œciœle honorowa
-	o<<"float"<<'\t'<<"CALLER_POPUL"<<'\t'<<CALLER_POPU<<"\t have to 2x greater"<<endl;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
-	o<<"float"<<'\t'<<"POLICE_EFFIC"<<'\t'<<POLICE_EFFIC<<endl<<endl;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
+	o<<"float"<<'\t'<<"CALLP_POPUL"<<'\t'<<CALLER_POPU<<endl;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
+	}
+	o<<"float"<<'\t'<<"POLICE_EFFIC"<<'\t'<<POLICE_EFFIC<<endl;
+	o<<"float"<<'\t'<<"always give up"<<'\t'<<(1-POLICE_EFFIC-CALLER_POPU-HONOR_POPUL)<<endl;//"loosers"
+	o<<"float"<<'\t'<<"RANDOM_AGRESSION"<<RANDOM_AGRESSION<<endl;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
+	o<<"float"<<'\t'<<"RATIONALITY"<<RATIONALITY<<endl<<endl; //Jak realistycznie ocenia w³asn¹ si³ê (vs. wg. w³asnej reputacji)
+
 	o<<"REPET:"<<'\t'<<"STOP:"<<'\t'<<"VFREQ:"<<endl;
 	o<<REPETITION_LIMIT<<'\t'<<STOP_AFTER<<'\t'<<EveryStep<<endl<<endl;
 }
@@ -160,6 +175,10 @@ void HonorAgent::RandomReset()
         ID=++licznik_zyc;
 		PowLimit=(DRAND()+DRAND()+DRAND()+DRAND()+DRAND()+DRAND())/6;  // Jak¹ si³ê mo¿e osi¹gn¹æ maksymalnie, gdy nie traci
 		Power=(0.5+DRAND()*0.5)*PowLimit; //	Si³a (0..inf)
+		HonorFeiRep=Power;//DRAND()*0.5;  //Reputacja obrony jako „wêdrowna œrednia” z konfrontacji
+													assert(0<=HonorFeiRep);
+													assert(HonorFeiRep<=1);
+/*
 		if(BULLI_POPUL<1)
 		{
 		  Agres=(DRAND()<BULLI_POPUL?1:0); //Albo jest albo nie jest
@@ -173,14 +192,27 @@ void HonorAgent::RandomReset()
 		}
 
 		Honor=(DRAND()<HONOR_POPUL?1:0); //Albo jest albo nie jest -  Bezwarunkowa honorowoœæ (0..1) sk³onnoœæ podjêcia obrony,  const float	   HONOR_POPUL=0.9;//Jaka czêœæ agentów populacji jest œciœle honorowa
-		HonorFeiRep=Power;//DRAND()*0.5;  //Reputacja obrony jako „wêdrowna œrednia” z konfrontacji
-													assert(0<=HonorFeiRep);
-													assert(HonorFeiRep<=1);
+	
+
 		if(Honor<0.99 && Agres<0.99 && DRAND()<CALLER_POPU) //??? Agres XOR HighHonor XOR CallPolice
 			CallPolice=1;//Prawdopodobieñstwo wzywania policji (0..1) Mo¿e te¿ jako „wêdrowna œrednia” wezwañ, ale na razie nie
 			else
 			CallPolice=0;
-	 //	Resources=(DRAND()*DRAND()*DRAND()*DRAND()*DRAND()*DRAND())*10000;  // Zasoby (0..inf)
+*/
+		if(BULLI_POPUL<1)
+		{
+		   Honor=0;CallPolice=0;//Wartoœci domyœlne dla agresywnych i wzywaj¹cych policje
+		   Agres=(DRAND()<BULLI_POPUL?1:0); //Albo jest albo nie jest
+		   if(Agres!=1)
+		   {
+			 Honor=(DRAND()*(1-BULLI_POPUL)<HONOR_POPUL?1:0);
+			 if(Honor!=1)
+			   CallPolice=(DRAND()*(1-BULLI_POPUL-HONOR_POPUL)<CALLER_POPU?1:0);
+			   else
+			   { /* LOOSER */ }
+		   }
+        }
+	 //	Resources=(DRAND()*DRAND()*DRAND()*DRAND()*DRAND()*DRAND())*10000;  //Zasoby (0..inf)
 }
 
 HonorAgent::Decision  HonorAgent::check_partner(wb_dynmatrix<HonorAgent>& World,unsigned& x,unsigned& y)
@@ -188,17 +220,23 @@ HonorAgent::Decision  HonorAgent::check_partner(wb_dynmatrix<HonorAgent>& World,
 {
 	this->MemOfLastDecision=WITHDRAW; //DOMYŒLNA DECYZJA
 	unsigned L=RANDOM(HowManyNeigh);//Ustalenie który s¹siad
-	if(getNeigh(L,x,y) && this->Agres>0.0 ) //Pobranie wspó³rzêdnych s¹siada
+	if(getNeigh(L,x,y) ) //Pobranie wspó³rzêdnych s¹siada
 	{
 		HonorAgent& Ag=World[y][x];	//Zapamiêtanie referencji do s¹siada
 		//BARDZO PROSTA REGU£A DECYZYJNA - wygl¹da, ¿e warto atakowaæ i jest chêæ
-		if(
-		(DRAND()<this->Agres                 //Agresywnoœæ jako
-		&& Ag.HonorFeiRep<this->HonorFeiRep) //jako wyrachowanie
-		//|| DRAND()<0.001)					//+losowe przypadki burd po pijaku - ZACIEMNIA
-		|| (Ag.Honor>0 && DRAND()<Ag.Honor*0.005) //A mo¿e tylko honorowi maj¹ niezer¹ agresjê z powodu nieporozumieñ?
-		)//=====================================================================
-			this->MemOfLastDecision=HOOK;//Ewentualna zmiana decyzji
+		if(this->Agres>0.0 && DRAND()<this->Agres           //Agresywnoœæ jako
+		&& Ag.HonorFeiRep<(RATIONALITY*this->Power+(1-RATIONALITY)*HonorFeiRep)
+		) //jako wyrachowanie
+		{
+			this->MemOfLastDecision=HOOK;//Nieprzypadkowa zaczepka bulliego
+		}
+		else if(
+		//DRAND()<RANDOM_AGRESSION)					//+losowe przypadki burd po pijaku - ZACIEMNIA
+		(Honor>0 && DRAND()<Honor*RANDOM_AGRESSION) //A mo¿e tylko honorowi maj¹ niezer¹ agresjê z powodu nieporozumieñ?
+		)
+		{
+			this->MemOfLastDecision=HOOK;//Ewentualna zaczepka losowa lub honorowa
+		}
 	}
 	return this->MemOfLastDecision;
 }
@@ -209,14 +247,15 @@ HonorAgent::Decision  HonorAgent::answer_if_hooked(wb_dynmatrix<HonorAgent>& Wor
 	 this->MemOfLastDecision=GIVEUP;//DOMYŒLNA DECYZJA
 	 HonorAgent& Ag=World[y][x];	//Zapamiêtanie referencji do s¹siada
 
-	 //REGU£A ZALE¯NA WYCHOWANIA POLICUJNEGO
+	 //REGU£A ZALE¯NA WYCHOWANIA POLICYJNEGO
 	 //LUB OD HONORU i W£ASNEGO POCZUCIA SI£Y
-	 if(DRAND()<this->CallPolice)
+	 if(DRAND()<this->CallPolice)  //TOCHECK CallPolice==0
 	 {
 		this->MemOfLastDecision=CALLAUTH;
 	 }
 	 else
-	 if(DRAND()<this->Honor || Ag.HonorFeiRep<this->HonorFeiRep)
+	 if(DRAND()<this->Honor
+	 || Ag.HonorFeiRep<this->Power /*HonorFeiRep*/)   //TOCHECK? Honor==1
 	 {
 		this->MemOfLastDecision=FIGHT;
 	 }
@@ -241,27 +280,27 @@ void      HonorAgent::change_reputation(double delta)
 													assert(HonorFeiRep<=1);
 	if(delta>0) //Wzrost
 	{
-		HonorFeiRep+=(1-HonorFeiRep)*delta;       assert(HonorFeiRep<=1);
+		HonorFeiRep+=(1-HonorFeiRep)*delta;       	assert(HonorFeiRep<=1);
 	}
 	else
 	{
-		HonorFeiRep-=HonorFeiRep*fabs(delta);           assert(0<=HonorFeiRep);
-												  assert(HonorFeiRep<=1);
+		HonorFeiRep-=HonorFeiRep*fabs(delta);       assert(0<=HonorFeiRep);
+													assert(HonorFeiRep<=1);
 	}
 }
 
 void      HonorAgent::lost_power(double delta)
 //Spadek si³y z zabezpieczeniem zakresu
-{                                  assert(Power<=1);
+{                                  					assert(Power<=1);
 	 delta=fabs(delta);
-	 Power*=(1-delta);             assert(Power>0);
+	 Power*=(1-delta);             					assert(Power>0);
 	 //if(Power<0) Power=0;
 }
 
 void one_step(wb_dynmatrix<HonorAgent>& World)
 //G³ówna dynamika kontaktów
 {
-	unsigned N=(SIDE*SIDE)/2;//Ile losowañ w kroku MC? Po³owa, bo w k¹¿dej interakcji dwaj
+	unsigned N=(SIDE*SIDE)/2;//Ile losowañ w kroku MC? Po³owa, bo w ka¿dej interakcji dwaj
 	for(unsigned i=0;i<N;i++)
 	{
 		unsigned x1=RANDOM(SIDE);
@@ -271,7 +310,8 @@ void one_step(wb_dynmatrix<HonorAgent>& World)
 		HonorAgent::Decision Dec1=AgI.check_partner(World,x2,y2);
 		if(Dec1==HonorAgent::HOOK) //Jeœli zaczepi³
 		{
-		   HonorAgent& AgH=World[y2][x2];  //Zapamiêtanie referencji do agenta zaczepionego
+		   AgI.change_reputation(+0.05); // Od razu dostaje powzy¿szenie reputacji za samo wyzwanie
+		   HonorAgent& AgH=World[y2][x2];//Zapamiêtanie referencji do agenta zaczepionego
 		   HonorAgent::Decision Dec2=AgH.answer_if_hooked(World,x1,y1);
 		   switch(Dec2){
 		   case HonorAgent::FIGHT:
@@ -324,10 +364,10 @@ void one_step(wb_dynmatrix<HonorAgent>& World)
 		   break;
 		   }
 		}
-		else  //if WITHDRAW  //Jak siê wycofa³
+		else  //if WITHDRAW  //Jak siê wycofa³ z zaczepiania?
 		{
-			AgI.change_reputation(-0.0001);//Minimalnie traci w swoich oczach
-        }
+		  	AgI.change_reputation(-0.0001);//Minimalnie traci w swoich oczach
+		}
 	}
 
 	step_counter++;
