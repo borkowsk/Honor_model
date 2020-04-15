@@ -1,6 +1,8 @@
-//  Agent do modelu kultury honoru
+﻿//  Agent do modelu kultury honoru
 //
 ////////////////////////////////////////////////////////////////////////////////
+//#define TESTING_RULE_LITERALS 1   //ALE TO BARDZO SPOWALNIA!
+
 typedef double FLOAT;
 #include "iostream"
 #define USES_STDC_RAND
@@ -18,10 +20,10 @@ extern unsigned population_growth;//=1;//SPOSOBY ROZMNA�ANIA
 const unsigned 		SIDE=100;//SIDE*SIDE to rozmiar �wiata symulacji
 const int	   		MOORE_RAD=3; //Nie zmienia� na unsigned bo si� psuje losowanie!      //2 dla DEBUG,zwykle 3
 const unsigned 		MOORE_SIZE=(4*MOORE_RAD*MOORE_RAD)+4*MOORE_RAD;//S�siedzi Moora - cztery kwadranty + 4 osie
-const FLOAT    		OUTFAR_LINKS_PER_AGENT=0.5; //Ile jest dodatkowych link�w jako u�amek liczby agent�w
+
+const FLOAT    		OUTFAR_LINKS_PER_AGENT=0.5;//0.5; //Ile jest dodatkowych link�w jako u�amek liczby agent�w
 const unsigned 		FAR_LINKS=unsigned(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT*2);
 const unsigned 		MAX_LINKS=MOORE_SIZE + 2/*ZAPAS*/ + (FAR_LINKS/(SIDE*SIDE)? FAR_LINKS/(SIDE*SIDE):2); //Ile maksymalnie mo�e miec agent link�w
-const FLOAT    		RECOVERY_POWER=0.005;//Jak� cz�� si�y odzyskuje w kroku
 const FLOAT    		RATIONALITY=0.0; //WAGA jak realistycznie ocenia w�asn� si�� (vs. wed��g w�asnej reputacji)
 
 //INDYWIDUALNE CECHY AGENT�W
@@ -35,6 +37,13 @@ extern FLOAT    POLICE_EFFIC;//=0.50;//0.650;//0.950; //Z jakim prawdopodobie�
 extern bool		ONLY3STRAT; //Czy tylko 3 strategie?
 
 //INNE GLOBALNE WLASCIWOSCI SWIATA
+#ifdef TESTING_RULE_LITERALS
+extern FLOAT	TEST_DIVIDER;//=1.0; //Służy do modyfikacji stałych liczbowych używanych w regułach reakcji agenta
+#else
+const  FLOAT	TEST_DIVIDER=1;
+#endif
+
+extern FLOAT    RECOVERY_POWER;//=0.005;//Jak� cz�� si�y odzyskuje w kroku
 extern bool     MAFIAHONOR;//=true; //Czy reputacja przenosi si� na cz�onk�w rodziny
 extern FLOAT    USED_SELECTION;//=0.05;//0.10; //Jak bardzo przegrani umieraj� (0 - brak selekcji w og�le)
 extern FLOAT    MORTALITY;  //=0.01 //Jak �atwo mo�na zgin�� z przyczyn niespo�ecznych - horoba, wypadek itp. JAK 0 TO S� "ELFY"
