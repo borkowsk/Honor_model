@@ -1,4 +1,4 @@
-//  Agent do modelu kultury honoru
+﻿//  Agent do modelu kultury honoru
 //      IMPLEMENTACJE
 ////////////////////////////////////////////////////////////////////////////////
 #define _USE_MATH_DEFINES //bo M_PI
@@ -207,7 +207,13 @@ void    HonorAgent::change_reputation(double Delta,HonorAgent& Powod,int level)/
 {                                                   assert(this!=&Powod);//Sam siebie nie mo�e atakowa�!
 													assert(0<=HonorFeiRep);
 													assert(HonorFeiRep<=1);
-	HonorAgent* Cappo=NULL;//Przy okazji sprawdzenia czy kto� jest w rodzinie ustalamy "Ojca chrestnego".
+#ifdef HONOR_WITHOUT_REPUTATION
+	 if(this->Honor==1) //Jest honorowy - nic nie zmieniamy
+	 {
+		return;
+	 }
+#endif
+	HonorAgent* Cappo=NULL;//Przy okazji sprawdzenia czy kto� jest w rodzinie ustalamy "Ojca chrzestnego".
 	if(&Powod!=NULL && MAFIAHONOR && !IsMyFamilyMember(Powod,Cappo) )//Je�eli dzia�a honor rodzinny to ...
 	{
 		if(Cappo==NULL)//Nie ma �yj�cego ojca - �lad si� urywa
@@ -381,60 +387,58 @@ void one_step(unsigned long& step_counter)
 		if(Dec1==HonorAgent::HOOK) //Je�li zaczepi�
 		{                                					assert(AgI.Agres>0 || AgI.Honor>0);
 		   HonorAgent& AgH=HonorAgent::World[y2][x2];//Zapami�tanie referencji do agenta zaczepionego
-		   AgI.change_reputation(+0.05,AgH); // Od razu dostaje powzy�szenie reputacji za samo wyzwanie
+		   AgI.change_reputation(+0.05*TEST_DIVIDER,AgH); // Od razu dostaje powzy�szenie reputacji za samo wyzwanie
 		   HonorAgent::Decision Dec2=AgH.answer_if_hooked(x1,y1);
 		   switch(Dec2){
 		   case HonorAgent::FIGHT:
 					   if(HonorAgent::firstWin(AgI,AgH))
 					   {
-						  AgI.change_reputation(+0.35,AgH);//Zyska� bo wygra�
+						  AgI.change_reputation(+0.35*TEST_DIVIDER,AgH);//Zyska� bo wygra�
 						  AgI.HisActions.Succeses++;
-						  AgI.lost_power(-0.75*DRAND());//Straci� bo walczy�
+						  AgI.lost_power(-0.75*TEST_DIVIDER*DRAND());//Straci� bo walczy�
 
-						  AgH.change_reputation(+0.1,AgI); //Zyska� bo stan��
-						  AgH.lost_power(-0.95*DRAND());//Straci� bo przegra� walk�
+						  AgH.change_reputation(+0.1*TEST_DIVIDER,AgI); //Zyska� bo stan��
+						  AgH.lost_power(-0.95*TEST_DIVIDER*DRAND());//Straci� bo przegra� walk�
 						  AgH.HisActions.Fails++;
 					   }
 					   else
 					   {
-						  AgI.change_reputation(-0.35,AgH);//Straci� bo zaczepi� i dosta� b�cki
+						  AgI.change_reputation(-0.35*TEST_DIVIDER,AgH);//Straci� bo zaczepi� i dosta� b�cki
 						  AgI.HisActions.Fails++;
-						  AgI.lost_power(-0.95*DRAND()); //Straci� bo przegra� walk�
+						  AgI.lost_power(-0.95*TEST_DIVIDER*DRAND()); //Straci� bo przegra� walk�
 
-
-						  AgH.change_reputation(+0.75,AgI);//Zyska� bo wygra� cho� by� zaczepiony
+						  AgH.change_reputation(+0.75*TEST_DIVIDER,AgI);//Zyska� bo wygra� cho� by� zaczepiony
 						  AgH.HisActions.Succeses++;
-						  AgH.lost_power(-0.75*DRAND());	//Straci� bo walczy�
-
+						  AgH.lost_power(-0.75*TEST_DIVIDER*DRAND());	//Straci� bo walczy�
 					   }
 					break;
 		   case HonorAgent::GIVEUP:
 					   {
-						  AgI.change_reputation(+0.5,AgH); //Zyska� bo wygra� bez walki. Na pewno wi�cej ni� w walce???
+						  AgI.change_reputation(+0.5*TEST_DIVIDER,AgH); //Zyska� bo wygra� bez walki. Na pewno wi�cej ni� w walce???
 						  AgI.HisActions.Succeses++;
 
-						  AgH.change_reputation(-0.5,AgI); //Straci� bo si� podda�
+						  AgH.change_reputation(-0.5*TEST_DIVIDER,AgI); //Straci� bo si� podda�
 						  AgH.HisActions.Fails++;
-						  AgH.lost_power(-0.5*DRAND()/*DRAND()*/);//I troch� dosta� �omot dla przyk�adu   (!!!)
+						  AgH.lost_power(-0.5*TEST_DIVIDER*DRAND()/*DRAND()*/);//I troch� dosta� �omot dla przyk�adu   (!!!)
 					   }
 					break;
 		   case HonorAgent::CALLAUTH:
 					  if(DRAND()<POLICE_EFFIC) //Czy przyby�a
 					  {
-						  AgI.change_reputation(-0.35,AgH);//Straci� bo zaczepi� i dosta� b�cki od policji
+						  AgI.change_reputation(-0.35*TEST_DIVIDER,AgH);//Straci� bo zaczepi� i dosta� b�cki od policji
 						  AgI.HisActions.Fails++;
-						  AgI.lost_power(-0.99*DRAND()); //Straci� bo walczy� i przegra� z przewa�aj�c� si��
+						  AgI.lost_power(-0.99*TEST_DIVIDER*DRAND()); //Straci� bo walczy� i przegra� z przewa�aj�c� si��
 
 						  AgH.HisActions.Succeses++; //Zaczepionemu uda�o si� unikn�� b�cek, ale...
-						  AgH.change_reputation(-0.75,AgI);//A  straci� reputacje bo wezwa� policje zamiast walczy�
+						  AgH.change_reputation(-0.75*TEST_DIVIDER,AgI);//A  straci� reputacje bo wezwa� policje zamiast walczy�
 					  }
 					  else //A mo�e nie
 					  {
-						  AgI.change_reputation(+0.5,AgH);//Zyska� bo wygra� bez walki. A� tyle?
+						  AgI.change_reputation(+0.5*TEST_DIVIDER,AgH);//Zyska� bo wygra� bez walki. A� tyle?
 						  AgI.HisActions.Succeses++;
 
-						  AgH.change_reputation(-0.75,AgI);//Zaczepiony straci� bo wezwa� policje
-						  AgH.lost_power(-0.99*DRAND()); //Straci� bo si� nie broni�, a wkurzy� wzywaj�c
+						  AgH.change_reputation(-0.75*TEST_DIVIDER,AgI);//Zaczepiony straci� bo wezwa� policje
+						  AgH.lost_power(-0.99*TEST_DIVIDER*DRAND()); //Straci� bo si� nie broni�, a wkurzy� wzywaj�c
 						  AgH.HisActions.Fails++;
 					  }
 					break;
@@ -449,7 +453,7 @@ void one_step(unsigned long& step_counter)
 		}
 		else  //if WITHDRAW  //Jak si� wycofa� z zaczepiania?
 		{
-			AgI.change_reputation(-0.0001,*(HonorAgent*)(NULL));//Minimalnie traci w swoich oczach
+			AgI.change_reputation(-0.0001*TEST_DIVIDER,*(HonorAgent*)(NULL));//Minimalnie traci w swoich oczach
 		}
 	}
 

@@ -1,7 +1,9 @@
 ﻿//  Agent do modelu kultury honoru
 //
 ////////////////////////////////////////////////////////////////////////////////
+
 //#define TESTING_RULE_LITERALS 1   //ALE TO BARDZO SPOWALNIA!
+//#define HONOR_WITHOUT_REPUTATION 1  //Nie zmieniać wrodzonej reputacji honorowych
 
 typedef double FLOAT;
 #include "iostream"
@@ -42,6 +44,7 @@ extern FLOAT	TEST_DIVIDER;//=1.0; //Służy do modyfikacji stałych liczbowych u
 #else
 const  FLOAT	TEST_DIVIDER=1;
 #endif
+
 
 extern FLOAT    RECOVERY_POWER;//=0.005;//Jak� cz�� si�y odzyskuje w kroku
 extern bool     MAFIAHONOR;//=true; //Czy reputacja przenosi si� na cz�onk�w rodziny
