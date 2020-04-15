@@ -124,7 +124,7 @@ void HonorAgent::RandomReset()
 			 Honor=(DRAND()*(1-fabs(BULLI_POPUL)) < fabs(HONOR_POPUL)? 1 : 0 ); //Jest HONOROWY albo nie jest
 			 if(Honor!=1)   //NIE AGRESYWNY i NIE HONOROWY
 			 {              //policyjny albo racjonalny - mog³oby byæ CallPolice=1 i w ten sposób znikaj¹ RACJONALNI (czwarta strategia)
-			   if(ONLY3STRAT)
+			   if(!ONLY3STRAT)
 					CallPolice=(DRAND()*(1-fabs(BULLI_POPUL)-fabs(HONOR_POPUL)) < fabs(CALLER_POPU)? 1 : 0); //Jest albo nie ma
 			   else
 					CallPolice=1;
