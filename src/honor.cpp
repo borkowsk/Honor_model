@@ -300,7 +300,7 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 		o<<SEP<<"STATSTEP"<<SEP<<"PREVSTEP"<<SEP<<"STATSTART";o<<ENDL;//Tak ma byæ to ENDL!
 	o<<REPETITION_LIMIT<<SEP<<STOP_AFTER<<SEP<<EveryStep;
 	if(batch_mode)
-		o<<SEP<<(max(EveryStep,100)<<PREVSTEP<<SEP<<STAT_AFTER;o<<ENDL<<ENDL;
+		o<<SEP<<(max(EveryStep,100u))<<SEP<<PREVSTEP<<SEP<<STAT_AFTER;o<<ENDL<<ENDL;
 	if(FL) o.flush();
 }
 
