@@ -126,7 +126,7 @@ void HonorAgent::RandomReset()
 			 {              //policyjny albo racjonalny - mog³oby byæ CallPolice=1 i w ten sposób znikaj¹ RACJONALNI (czwarta strategia)
 			   CallPolice=(DRAND()*(1-fabs(BULLI_POPUL)-fabs(HONOR_POPUL)) < fabs(CALLER_POPU)? 1 : 0); //Jest albo nie ma
 			   if(ONLY3STRAT && CallPolice==0) //Racjonalni "zabijani"!
-					this->Power=-1;
+					this->Power=0;
 			 }
 			 else
 			 {

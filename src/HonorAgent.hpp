@@ -31,6 +31,7 @@ extern FLOAT    BULLI_POPUL;//=-0.25;//0.2;//0.100;//Albo zero-jedynkowo. Jak 1 
 extern FLOAT	HONOR_POPUL;//=0.18;//0.3333;//Jaka czêœæ agentów populacji jest œciœle honorowa
 extern FLOAT    CALLER_POPU;//=0.25;//Jaka czêœæ wzywa policje zamiast siê poddawaæ
 extern FLOAT    POLICE_EFFIC;//=0.50;//0.650;//0.950; //Z jakim prawdopodobieñstwem wezwana policja obroni agenta
+extern bool		ONLY3STRAT; //Czy tylko 3 strategie?
 
 //INNE GLOBALNE WLASCIWOSCI SWIATA
 extern bool     MAFIAHONOR;//=true; //Czy reputacja przenosi siê na cz³onków rodziny
