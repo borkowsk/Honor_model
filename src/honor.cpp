@@ -667,7 +667,7 @@ void replot(wb_dynmatrix<HonorAgent>& World)
 	int old=mouse_activity(0);
 	//clear_screen();
 	unsigned SOffset=4; //Przesuniêcie od rogów
-	unsigned spw=screen_width()-SIDE*SSIZ-70-SOffset;
+	unsigned spw=screen_width()-SIDE*SSIZ-SOffset;
 	unsigned sph=SOffset;
 	unsigned txtw=SOffset+SIDE*VSIZ+2*SOffset;
 	unsigned StartDyn=(SIDE+1)*SSIZ+2*char_height('X')+1+SOffset;//Gdzie w pioniesiê zaczyna wizualizacja dynamiki
@@ -789,15 +789,11 @@ double MeanCallPolice=0;
 double MeanPower=0;*/
 	printc(txtw,sph+(SIDE+1)*SSIZ,150,255,"%s","Reputation");
 	printc(txtw,sph+char_height('X')+(SIDE+1)*SSIZ,150,255,"Mean=%g       ",double(MeanFeiReputation));//,double(MeanCallPolice));   // HonorAgent::MaxReputation
-	printc(txtw,StartPow+(SIDE+1)*SSIZ,0,255,"%s","Strenght of agents");
+	printc(txtw,StartPow+(SIDE+1)*SSIZ,50,255,"%s","Strenght of Agents");
 	printc(txtw,StartPow+char_height('X')+(SIDE+1)*SSIZ,50,255,"Mean=%f                ",double( MeanPower ));
-	printc(txtw,StartDyn+(SIDE+1)*SSIZ,0,255,"%s","Local interactions");
+	printc(txtw,StartDyn+(SIDE+1)*SSIZ,50,255,"%s","Local interactions");
 	printc(txtw,StartDyn+char_height('X')+(SIDE+1)*SSIZ,50,255,"H:%u F:%u C:%u       ",CoutersForAll.HOOK,CoutersForAll.FIGHT,CoutersForAll.CALLAUTH);
-	printc(txtw,StartPro+(SIDE+1)*SSIZ,0,255,"%s","Culture of agents");
-	printc(txtw,StartPro+char_height('X')+(SIDE+1)*SSIZ,50,255,  "A:%u          ",MnStrenght[0].N);
-	printc(txtw,StartPro+2*char_height('X')+(SIDE+1)*SSIZ,200,255,"H:%u          ",MnStrenght[1].N);
-	printc(txtw,StartPro+3*char_height('X')+(SIDE+1)*SSIZ,128,255,"P:%u          ",MnStrenght[2].N);
-	printc(txtw,StartPro+4*char_height('X')+(SIDE+1)*SSIZ,0,255,"O:%u          ",MnStrenght[3].N);
+	printc(txtw,StartPro+(SIDE+1)*SSIZ,50,255,"%s A:%u H:%u P:%u O:%u      ","Cultures",MnStrenght[0].N,MnStrenght[1].N,MnStrenght[2].N,MnStrenght[3].N);
 	printc(txtw,SOffset+SIDE*VSIZ,128,255,"%u MC ",step_counter);
 	//HonorAgent::Max...=Real...;//Aktualizacja max-ów do policzonych przed chwil¹ realnych
 	flush_plot();
@@ -851,7 +847,7 @@ int main(int argc,const char* argv[])
 
  //	if(!init_plot(20+SIDE*VSIZ+104+SIDE*SSIZ,SIDE*VSIZ+26,0,1)) //Na g³ówn¹ wizualizacjê swiata i jakieœ boki
  //	if(!init_plot(1440,1080,0,0)) // Powy¿ej dodano sta³e w celu uzyskania filmowego rozmiaru  jak ten
-    if(!init_plot(20+SIDE*VSIZ+88+52+SIDE*SSIZ,SIDE*VSIZ+4,0,1)) //Na g³ówn¹ wizualizacjê swiata i jakieœ boki
+    if(!init_plot(20+SIDE*VSIZ+52+SIDE*SSIZ,SIDE*VSIZ+4,0,1)) //Na g³ówn¹ wizualizacjê swiata i jakieœ boki
 //	if(!init_plot(960,720,0,0)) // Powy¿ej dodano sta³e w celu uzyskania filmowego rozmiaru  jak ten
 //    if(!init_plot(20+SIDE*VSIZ+SIDE*SSIZ,SIDE*VSIZ,0,1))     //ORGINALNE
 	{
