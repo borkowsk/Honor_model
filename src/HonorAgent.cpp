@@ -1,4 +1,4 @@
-//  Agent do modelu kultury honoru
+﻿//  Agent do modelu kultury honoru
 //      IMPLEMENTACJE
 ////////////////////////////////////////////////////////////////////////////////
 #define _USE_MATH_DEFINES //bo M_PI
@@ -401,11 +401,9 @@ void one_step(unsigned long& step_counter)
 						  AgI.HisActions.Fails++;
 						  AgI.lost_power(-0.95*DRAND()); //Straci� bo przegra� walk�
 
-
 						  AgH.change_reputation(+0.75,AgI);//Zyska� bo wygra� cho� by� zaczepiony
 						  AgH.HisActions.Succeses++;
 						  AgH.lost_power(-0.75*DRAND());	//Straci� bo walczy�
-
 					   }
 					break;
 		   case HonorAgent::GIVEUP:

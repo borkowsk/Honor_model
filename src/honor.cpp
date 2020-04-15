@@ -20,7 +20,7 @@ using namespace std;
 using namespace wbrtm;
 
 const char* MODELNAME="Culture of honor";
-const char* VERSIONNUM="0.39b (15-04-2014)";
+const char* VERSIONNUM="0.39c (25-10-2014)";
 
 bool  batch_mode=false;       //Czy tryb pracy przeszukiwania przestrzeni parametr�w?
 enum  BATCH_MODES {NO_BAT=0,BAT_SELECTION=1,BAT_HONORvsCPOLL=2,BAT_HONORvsAGRR=3} batch_sele=BAT_SELECTION;	//Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
@@ -224,7 +224,7 @@ wb_pchar MakeFileName(const char* Core)
 		,
 		EXTERNAL_REPLACE,population_growth,HonorAgent::CzyTorus,
 		//...tu proporcje? na razie nie...
-		STOP_AFTER,STAT_AFTER,EveryStep,REPETITION_LIMIT,rand()/*(getpid())*/);
+		STOP_AFTER,STAT_AFTER,EveryStep,REPETITION_LIMIT,(getpid()));
 	return SPom;
 }
 
