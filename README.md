@@ -9,3 +9,9 @@ On RG: https://www.researchgate.net/publication/284727943_The_Evolutionary_Basis
 
 If you are using this code for research purposes, please quote this article.
 If to any of the others, give the coffee to the author (https://www.paypal.com/paypalme/wborkowsk)
+
+## Compilation
+
+You need a SymshellLight library for building this project.
+
+
