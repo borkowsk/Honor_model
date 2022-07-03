@@ -1,7 +1,7 @@
 # CMAKE configuration for HONOR simulation project
 ######################################################################
 # @Author: Wojciech Borkowski
-# @Coathor: Andrzej Nowak
+# @Coauthor: Andrzej Nowak
 #
 # Define WITHTOOLS if you want build helpers applications!
 #
@@ -19,14 +19,14 @@ add_subdirectory( ${SYMSHELL} ${SYMSHELL} )
 include_directories( ${SYMSHELL} )
 
 add_executable( honor
-                HonorAgent.cpp
-                Honor.cpp
+                "src/HonorAgent.cpp"
+                "src/honor.cpp"
 #windows only
-#               symshmsc.rc
-#               symshwin.ico
+#               "src/symshmsc.rc"
+#               "src/symshwin.ico"
                )
 
-target_link_libraries( honor 
+target_link_libraries( honor
      "-L${SYMSHELL}"
      wbsyshX11 X11 Xpm
      rt

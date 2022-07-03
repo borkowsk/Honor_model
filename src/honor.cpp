@@ -12,14 +12,16 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <process.h>
 
-#define HIDE_WB_PTR_IO 0
-#include "INCLUDE/wb_ptr.hpp"
-#include "INCLUDE/optParam.hpp"
+//#include <process.h> //WINDOWS? BorlandC++?
+#include <unistd.h>
 
-#include "SYMSHELL/symshell.h"
-#include "SYMSHELL/sshutils.hpp"
+#define HIDE_WB_PTR_IO 1
+#include "wb_ptr.hpp"
+#include "optParam.hpp"
+
+#include "symshell.h"
+#include "sshutils.hpp"
 
 #include "HonorAgent.hpp"
 
@@ -117,12 +119,12 @@ unsigned population_growth=1;//How population growth? (SPOSOBY ROZMNAŻANIA)
 
 
 //INNE GLOBALNE WLASCIWOSCI SWIATA
-bool     MAFIAHONOR=false; //Czy reputacja przenosi si� na cz�onk�w rodziny
-FLOAT    USED_SELECTION=0.20;//0.10; //Jak bardzo przegrani umieraj� (0 - brak selekcji w og�le)
-FLOAT    MORTALITY=0.0009;  //=0.01 //Jak �atwo mo�na zgin�� z przyczyn niespo�ecznych - choroba, wypadek itp. JAK 0 TO S� "ELFY"
-FLOAT    EXTERNAL_REPLACE=0.0001; //Jakie jest prawdopodobienstwo przypadkowej zamiany na zupe�nie innego
-FLOAT    HONOR_AGRESSION=0.01250;//0.015;//Bazowy poziom agresji dla HONOROWYCH
-FLOAT    AGRES_AGRESSION=0.01250;//POZIOM PRZYPADKOWEJ AGRESJI AGRESYWNYCH (bez calkulacji kto silniejszy!)
+bool     MAFIAHONOR=false; //Czy reputacja przenosi się na członków rodziny
+FLOAT    USED_SELECTION=0.20;//0.10; //Jak bardzo przegrani umierają (0 - brak selekcji w ogóle)
+FLOAT    MORTALITY=0.0009;  //=0.01 //Jak łatwo można zginąć z przyczyn niespołecznych, np. choroba, wypadek itp. JAK 0 TO SĄ "ELFY"
+FLOAT    EXTERNAL_REPLACE=0.0001; //Jakie jest prawdopodobieństwo przypadkowej zamiany na zupe�nie innego
+FLOAT    HONOR_AGRESSION=0.01250; //0.015;//Bazowy poziom agresji dla HONOROWYCH
+FLOAT    AGRES_AGRESSION=0.01250; //POZIOM PRZYPADKOWEJ AGRESJI AGRESYWNYCH (bez calkulacji kto silniejszy!)
 
 #ifdef TESTING_RULE_LITERALS
 FLOAT	 TEST_DIVIDER=1.0; //Służy do modyfikacji stałych liczbowych używanych w regułach reakcji agenta
@@ -157,7 +159,7 @@ FLOAT PROPORTION_STEP=0.05;
 FLOAT PROPORTION_MAX=1.0/3.0;
 FLOAT PROPORTION_MIN=0.0;
 
-//Sterowanie statystykami i powt�rzeniami
+//Sterowanie statystykami i powtórzeniami
 unsigned REPETITION_LIMIT=1; //10//Ile ma zrobi� powt�rze� tego samego eksperymentu;
 unsigned RepetNum=1; //Kt�ra to kolejna repetycja?  - NIE ZMIENIA� R�CZNIE!
 unsigned STOP_AFTER=60000;//Po jakim czasie staje automatycznie
@@ -168,8 +170,8 @@ unsigned EveryStep=50;//Cz�stotliwo�� wizualizacji i zapisu do logu
 unsigned DumpStep=10000;//Cz�sto�� zrzut�w stan�w agent�w
 
 //Parametry techniczne steruj�ce wizualizacj� i wydrukami
-unsigned VSIZ=5; //Maksymalny rozmiar boku agenta w wizualizacji kompozytowej
-unsigned SSIZ=1; //Bok agenta w wizualizacji uzupe�niaj�cej (ma�ej)
+unsigned VSIZ=9; //Maksymalny rozmiar boku agenta w wizualizacji kompozytowej
+unsigned SSIZ=2; //Bok agenta w wizualizacji uzupe�niaj�cej (ma�ej)
 bool  ConsoleLog=true;//Czy u�ywa logowania zdarze� ma konsoli. Wa�ne dla startu, potem si� da prze��cza�
 bool  VisShorLinks=false; //Wizualizacja bliskich link�w
 bool  VisFarLinks=false;  //Wizualizacja dalekich
@@ -875,11 +877,13 @@ int main(int argc,const char* argv[])
 
 	Parameters_dump(cout);
 
-	if(!init_plot(SIDE*VSIZ+20+SIDE*SSIZ,SIDE*VSIZ,0,1)) //Na g��wn� wizualizacj� swiata i jakie� boki
+	if(!init_plot(SIDE*VSIZ+20+SIDE*SSIZ,SIDE*VSIZ,2,1)) //Na g��wn� wizualizacj� swiata i jakie� boki
 	{
 		cerr<<"Can't initialize graphics"<<endl;
 		exit(-1);
 	}
+
+    line_width(1);
 
 	char* SPom;
 	if((SPom=strstr(LogName.get_ptr_val(),"XXX"))!=0)//Nie by�o zmiany nazwy z linii komend
@@ -1904,5 +1908,6 @@ void SaveScreen(unsigned step)
 	dump_screen(Filename.get_ptr_val());
 }
 
-int   WB_error_enter_before_clean=1; //Czy da� szanse operatorowi na poczytanie komunikat�w ko�cowych
-extern "C" int   basic_line_width=1; //Bo X11 z jakiegoś powodu nie chce tej zmiennej jako static
+int   WB_error_enter_before_clean=1; ///< Czy dać szanse operatorowi na poczytanie komunikatów końcowych
+//extern "C" ///< Bo X11 z jakiegoś powodu nie chce tej zmiennej jako static
+//int   basic_line_width=1;

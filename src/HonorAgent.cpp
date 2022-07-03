@@ -7,9 +7,9 @@
 #include <fstream>
 #include <iomanip>
 
+#include "symshell.h"
 #define HIDE_WB_PTR_IO 1
-#include "INCLUDE/wb_ptr.hpp"
-#include "SYMSHELL/symshell.h"
+#include "wb_ptr.hpp"
 
 #include "HonorAgent.hpp"
 

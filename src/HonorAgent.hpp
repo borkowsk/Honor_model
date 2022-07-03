@@ -8,8 +8,8 @@
 typedef double FLOAT;
 #include "iostream"
 #define USES_STDC_RAND
-#include "INCLUDE/Random.h"
-#include "INCLUDE/wb_ptr.hpp"
+#include "../INCLUDE/Randoms.h"
+#include "wb_ptr.hpp"
 
 
 extern unsigned population_growth;//=1;//How population growth? (SPOSOBY ROZMNAŻANIA)
