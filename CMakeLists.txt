@@ -1,26 +1,32 @@
-# CMAKE configuration for COEVO-lution1 simulation project
+# CMAKE configuration for HONOR simulation project
 ######################################################################
 # @Author: Wojciech Borkowski
+# @Coathor: Andrzej Nowak
+#
 # Define WITHTOOLS if you want build helpers applications!
-set(WITHTOOLS 1)
 #
 cmake_minimum_required(VERSION 2.9)
+set(WITHTOOLS 0)
+project(honor_model)
 
-project(coevolution1)
-
-set(SYMSHELL "../SymShellLight")
+set(SYMSHELL "../../public/SymShellLight")
 add_subdirectory( ${SYMSHELL} ${SYMSHELL} )
-if(WITHTOOLS)
-   add_subdirectory( HELPERS/ )
-endif()
+
+#if(WITHTOOLS)
+#   add_subdirectory( HELPERS/ )
+#endif()
 
 include_directories( ${SYMSHELL} )
 
-add_executable( coevo1
-                coevo.cpp
-                )
+add_executable( honor
+                HonorAgent.cpp
+                Honor.cpp
+#windows only
+#               symshmsc.rc
+#               symshwin.ico
+               )
 
-target_link_libraries( coevo1 
+target_link_libraries( honor 
      "-L${SYMSHELL}"
      wbsyshX11 X11 Xpm
      rt
