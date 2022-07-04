@@ -40,7 +40,8 @@ extern FLOAT    POLICE_EFFIC; ///< Default:=0.050; Probability of efficient inte
 
 extern bool     InheritMAXPOWER;  ///< NOT USED? Default=false;//Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?
 extern FLOAT    LIMITNOISE;		  ///< NOT USED? Default=0.3; //Mnożnik szumu
-const FLOAT     BULLISM_LIMIT=-1; ///< NOT USED? (Nie używany. Jak ujemne to rozkład Pareto lub brak rozkładu, jak dodatnie to dzwonowy. Jak BULLI_POPUL 1 to decyduje rozkład sterowany BULLISM_LIMIT)
+
+//const FLOAT     BULLISM_LIMIT=-1; ///< NOT USED? (Nie używany. Jak ujemne to rozkład Pareto lub brak rozkładu, jak dodatnie to dzwonowy. Jak BULLI_POPUL 1 to decyduje rozkład sterowany BULLISM_LIMIT)
 const FLOAT    	RATIONALITY=0.0;  ///< NOT USED? How realistically the agent evaluate their own strength (Jak realistycznie ocenia własną siłę vs. według własnej reputacji)
 
 /// OTHER GLOBAL PARAMETERS OF THE MODEL
@@ -221,9 +222,6 @@ bool HonorAgent::AreNeigh(int x1,int y1,int x2,int y2)
 	}
 	return false; // not found
 }
-
-
-
 
 // Accessors for statistics & visualization
 //*///////////////////////////////////////////////////////////////////////////////
