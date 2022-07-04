@@ -5,9 +5,9 @@
 *  0.43 - version with TEST_DIVIDER constants in agent rules
 *  0.39a - reintroduce spontaneous honor aggressiveness
 *  0.38abc - introducing a map of variation measure additionally next to the proportion map and the   average strength map but the variation between a step and its immediate predecessor is very small.
-- Introduced PREVSTEP parameter set to 80 (more often than every 100 steps, it doesn't count in parameter space mode anyway)
-- THE COUNTING OF STEPS IN LONG PARAMETER SPACE EXPERIMENTS has been improved!
-- The ONLY3STRAT parameter was introduced for testing the lean version of the model (no rationals) and deriving PREVSTEP and ONLY3STRAT as calling parameters.
+         - Introduced PREVSTEP parameter set to 80 (more often than every 100 steps, it doesn't count in parameter space mode anyway)
+         - THE COUNTING OF STEPS IN LONG PARAMETER SPACE EXPERIMENTS has been improved!
+         - The ONLY3STRAT parameter was introduced for testing the lean version of the model (no rationals) and deriving PREVSTEP and ONLY3STRAT as calling parameters.
 *  0.37a - statistics after action by groups. Other startup defects expanding the statistics of actions listed in the log testing the feasibility of the mortality model
 *  0.36b - minor changes to console texts (01/29/2014)
 *  0.36a - minor changes in console printouts and related to MSVC++ compilation
@@ -17,7 +17,7 @@
 *  0.35c - use of the OptEnumParam class for some calling parameters
 *  0.35b - and creating an automatic log and bitmap file name generator.
 *  0.35 - the final implementation of the two-level "MAFIA" (relationship to two levels of ancestors counts as a family)
-        - Output this as a parameter. Change log name parameters from char * to wb_pchar (you had to extend the OptParam class.
+         - Output this as a parameter. Change log name parameters from char * to wb_pchar (you had to extend the OptParam class.
 *  0.31 - split into separate sources to implement family honor. "b" - implementation of "mafia"
 *  0.30a - various changes to the way text data is output and a third kind of space exploration
 *  0.28a- the beginning of creating the third kind of cross-section of the parameter space, and corrections
