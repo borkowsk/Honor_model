@@ -17,62 +17,30 @@
 using namespace wbrtm;
 using namespace std;
 
+/// Pola statyczne klasy HonorAgent
+//*////////////////////////////////////////////////////////
+bool 	HonorAgent::CzyTorus=false; ///< Topologia świata
+unsigned HonorAgent::licznik_zyc=0; ///< Ile żywych agentów
+
+wb_dynmatrix<HonorAgent> HonorAgent::World; ///< ŚWIAT AGENTÓW
+
+/// Liczniki do statystyk "on run"
+//*/////////////////////////////////////////////////////////////////////////////////
 unsigned HonorRandomAttack=0;  ///< Honor Culture Random Attack Counter
 unsigned AgressRandomAttack=0; ///< Counter for random aggressive "culture" attacks
 
-/// Ustala czy pierwszy czy drugi agent zwycięży w konfrontacji
-/// WAŻNE UPROSZCZENIE: Zawsze któryś musi zwyciężyć, co nie jest realistyczne -
-bool      HonorAgent::firstWin(HonorAgent& In,HonorAgent& Ho)
+// OBSŁUGA INICJALIZACJI ŚWIATA AGENTÓW
+//*////////////////////////////////////////
+
+/// Losowa inicjalizacja atrybutów agentów
+void InitAtributes(FLOAT HowMany)
 {
-	if( In.Power*(1+DRAND())  >  Ho.Power*(1+DRAND()) ) //DRAND() --> random number from 0 to 1
-			return true;
-			else
-			return false;
+    for(int y=0;y<SIDE;y++)
+        for(int x=0;x<SIDE;x++)
+            HonorAgent::World[y][x].RandomReset();
 }
 
-/// Spadek siły z zabezpieczeniem zakresu
-void      HonorAgent::lost_power(double delta)
-{                                  					                                                   assert(Power<=1);
-	 delta=fabs(delta);
-	 Power*=(1-delta);             					
-	 if(Power<0)
-			Power=0;     //To be sure...
-}
-
-/// Wzrost lub spadek reputacji z zabezpieczeniem zakresu.
-/// Jak MAFIAHONOR i gość jest honorowy to zmienia się tak samo całej rodzinie!
-void    HonorAgent::change_reputation(double Delta,HonorAgent& Powod,int level)//level==0
-{                                                                                        //Sam siebie nie może atakować!
-                                                                                                 assert(this!=&Powod);
-													                                             assert(0<=HonorFeiRep);
-													                                             assert(HonorFeiRep<=1);
-#ifdef HONOR_WITHOUT_REPUTATION //For "null hipothesis" tests
-	 if(this->Honor==1) //Honor agent
-	 {
-		return; //nothing to do
-	 }
-#endif
-	HonorAgent* Cappo=NULL; //Przy okazji sprawdzenia, czy ktoś jest w tej rodzinie, ustalamy "Ojca chrzestnego".
-	if(&Powod!=NULL && MAFIAHONOR && !IsMyFamilyMember(Powod,Cappo) )//Jeżeli działa honor rodzinny to ...
-	{
-		if(Cappo==NULL) //Nie ma żyjącego ojca. Tu ślad się urywa.
-				Cappo=this;
-		Cappo->change_reputation_thru_family(Delta); //Ale może mieć dzieci...
-	}
-	else
-	if(Delta>0) //Wzrost
-	{
-		HonorFeiRep+=(1-HonorFeiRep)*Delta;       	                                             assert(HonorFeiRep<=1);
-	}
-	else       //Spadek
-	{
-		HonorFeiRep-=HonorFeiRep*fabs(Delta);                                                 assert(0<=HonorFeiRep);
-													                                             assert(HonorFeiRep<=1);
-	}
-}
-
-
-/// Losowanie wartości atrybutów
+/// Losowanie wartości atrybutów agenta.
 ///\default iPOWLIMIT==0
 void HonorAgent::RandomReset(float iPOWLIMIT)
 {
@@ -125,6 +93,54 @@ void HonorAgent::RandomReset(float iPOWLIMIT)
 		}
 }
 
+/// Losowo-matrycowa inicjalizacja połączeń (czyli są lokalne + dalekie)
+void InitConnections(FLOAT HowManyFar)
+{
+    // Połączenia z najbliższymi sąsiadami
+    for(int x=0;x<SIDE;x++)
+        for(int y=0;y<SIDE;y++)
+        {
+            HonorAgent& Ag=HonorAgent::World[y][x];	//Zapamiętanie referencji do agenta, żeby ciągle nie liczyć indeksów
+            for(int xx=x-MOORE_RAD;xx<=x+MOORE_RAD;xx++)
+                for(int yy=y-MOORE_RAD;yy<=y+MOORE_RAD;yy++)
+                    if(!(xx==x && yy==y))//Wyci�cie samego siebie
+                    {
+                        if(HonorAgent::CzyTorus) //JAKA TOPOLOGIA ŚWIATA?
+                            Ag.addNeigh((xx+SIDE)%SIDE,(yy+SIDE)%SIDE); //Zamknięte w torus
+                        else
+                        if(0<=xx && xx<SIDE && 0<=yy && yy<SIDE)
+                            Ag.addNeigh(xx,yy); //bez boków
+                    }
+        }
+
+    // Dalekie połączenia muszą być tworzone po lokalnych, żeby się nie dublowały
+    for(int f=0;f<HowManyFar;f++)
+    {
+        unsigned x1,y1,x2,y2;
+
+        // Poszukanie agentów z wolnymi slotami, czyli inicjujących dalekie połączenia
+        do{
+            x1=RANDOM(SIDE);
+            y1=RANDOM(SIDE);
+        }while(HonorAgent::World[y1][x1].NeighSize()>=MAX_LINKS);
+
+        //"Bierny" odbiorca dalekiego połączenia nie może być tym samym agentem ani bliskim sąsiadem!
+        do{
+            x2=RANDOM(SIDE);
+            y2=RANDOM(SIDE);
+        }while( (x1==x2 && y1==y2)							//Nie sam na siebie
+                || HonorAgent::World[y2][x2].NeighSize()>=MAX_LINKS //Musi mieć wolny slot
+                || HonorAgent::AreNeigh(x1,y1,x2,y2)); //CZY KTOŚ MOŻE BYĆ DWA RAZY NA LIŚCIE!?
+
+        //Połączenie ich linkami w obie strony
+        HonorAgent::World[y1][x1].addNeigh(x2,y2);
+        HonorAgent::World[y2][x2].addNeigh(x1,y1);
+    }
+}
+
+// OBSŁUGA DYNAMIKI SYMULACJI
+//*///////////////////////////////////////////////////////////////////////
+
 /// \brief
 /// Wybór partnera interakcji przez agenta, który dostał losową inicjatywę, oraz decyzja co agent z inicjatywą ma zrobić.
 /// \details
@@ -154,7 +170,7 @@ HonorAgent::Decision  HonorAgent::check_partner(unsigned& x,unsigned& y)
 		( Ag.HonorFeiRep<=(RATIONALITY*this->Power+(1-RATIONALITY)*HonorFeiRep) //Agresywność, gdy przeciwnik SŁABSZY! Więc agresywni by nigdy by tak ze sobą nie walczyli!     RULE 2 !
 		||( DRAND()< AGRES_AGRESSION   )  )                                     //Agresywność spontaniczna (bez kalkulacji)
 		)
-		{                                                                       assert(this->Agres>0.0);
+		{                                                                                       assert(this->Agres>0.0);
 			if(  Ag.HonorFeiRep>this->HonorFeiRep )
 				AgressRandomAttack++;
 			//cout<<"!"; //Zaatakować silniejszego!  
@@ -176,7 +192,15 @@ HonorAgent::Decision  HonorAgent::check_partner(unsigned& x,unsigned& y)
     return this->MemOfLastDecision;
 }
 
-/// Odpowiedź pasywnego agenta na zaczepkę
+/// Odpowiedź pasywnego agenta na zaczepkę.
+/// \details
+/// To też zależy od kultury. Domyślną decyzją jest się poddać, i dotyczy zarówno "agresywnych" jak i racjonalnych.
+/// Co jest o tyle sensowne że atakujący ma i tak ZAWSZE wyższą reputację niż atakowany. Albo tak mu się przynajmniej wydaje.
+/// Jednakże:
+/// Agenci kultury "DYGNITY" wzywają policję z prawdopodobieństwem zależnym od tego jak bardzo się z ta kulturą identyfikują.
+/// Ale w artykule z 2015 ta identyfikacja zawsze wynosi 1 czyli policja jest zawsze przez nich wzywana.
+/// Agenci kultury honoru ZAWSZE odpowiadają na zaczepkę (chyba że nie są w 100% honorowi, ale tego też nie testowaliśmy).
+///
 HonorAgent::Decision  HonorAgent::answer_if_hooked(unsigned x,unsigned y)
 {
 	 this->MemOfLastDecision=GIVEUP; //DOMYŚLNA DECYZJA
@@ -205,60 +229,14 @@ HonorAgent::Decision  HonorAgent::answer_if_hooked(unsigned x,unsigned y)
 	 return this->MemOfLastDecision;
 }
 
-/// Losowa inicjalizacja atrybutów agentów
-void InitAtributes(FLOAT HowMany)
-{
-	for(int y=0;y<SIDE;y++)
-	  for(int x=0;x<SIDE;x++)
-		HonorAgent::World[y][x].RandomReset();
-}
-
-/// Losowo-matrycowa inicjalizacja połączeń (czyli są lokalne + dalekie)
-void InitConnections(FLOAT HowManyFar)
-{
-	// Połączenia z najbliższymi sąsiadami
-	for(int x=0;x<SIDE;x++)
-		for(int y=0;y<SIDE;y++)
-		{
-		   HonorAgent& Ag=HonorAgent::World[y][x];	//Zapamiętanie referencji do agenta, żeby ciągle nie liczyć indeksów
-		   for(int xx=x-MOORE_RAD;xx<=x+MOORE_RAD;xx++)
-			  for(int yy=y-MOORE_RAD;yy<=y+MOORE_RAD;yy++)
-			  if(!(xx==x && yy==y))//Wyci�cie samego siebie
-			  {
-				 if(HonorAgent::CzyTorus) //JAKA TOPOLOGIA ŚWIATA?
-				   Ag.addNeigh((xx+SIDE)%SIDE,(yy+SIDE)%SIDE); //Zamknięte w torus
-				   else
-				   if(0<=xx && xx<SIDE && 0<=yy && yy<SIDE)
-					 Ag.addNeigh(xx,yy); //bez boków
-			  }
-		}
-
-	// Dalekie połączenia muszą być tworzone po lokalnych, żeby się nie dublowały
-	for(int f=0;f<HowManyFar;f++)
-	{
-		unsigned x1,y1,x2,y2;
-
-		// Poszukanie agentów z wolnymi slotami, czyli inicjujących dalekie połączenia
-		do{
-		x1=RANDOM(SIDE);
-		y1=RANDOM(SIDE);
-		}while(HonorAgent::World[y1][x1].NeighSize()>=MAX_LINKS);
-
-        //"Bierny" odbiorca dalekiego połączenia nie może być tym samym agentem ani bliskim sąsiadem!
-		do{
-		x2=RANDOM(SIDE);
-		y2=RANDOM(SIDE);
-		}while( (x1==x2 && y1==y2)							//Nie sam na siebie
-		        || HonorAgent::World[y2][x2].NeighSize()>=MAX_LINKS //Musi mieć wolny slot
-		        || HonorAgent::AreNeigh(x1,y1,x2,y2)); //CZY KTOŚ MOŻE BYĆ DWA RAZY NA LIŚCIE!?
-
-		//Połączenie ich linkami w obie strony
-		HonorAgent::World[y1][x1].addNeigh(x2,y2);
-		HonorAgent::World[y2][x2].addNeigh(x1,y1);
-	}
-}
-
-/// Główna dynamika kontaktów
+/// Główna dynamika kontaktów.
+/// \Details
+/// W pętli Monte Carlo odbywa się:
+///     * Losowanie agenta aktywnego,
+///     * ustalanie z kim wchodzi w interakcje i jakiego rodzaju to interakcja.
+///     * Sprawdzenie odpowiedzi agenta zaczepionego
+///     * obsługa rezultatów interakcji.
+///
 void one_step(unsigned long& step_counter)
 {
 	unsigned N=(SIDE*SIDE)/2; //Ile losowań w kroku MC? Połowa (!), bo w każdej interakcji biorą udział dwaj agenci
@@ -350,6 +328,7 @@ void one_step(unsigned long& step_counter)
 	step_counter++; // KONIEC KROKU M-C
 }
 
+/// Statystyki przeżyciowe
 unsigned NumberOfKilled=0; ///< Counter of all deaths
 unsigned NumberOfKilledToday=0; ///< Death counter per step
 
@@ -477,17 +456,8 @@ void power_recovery_step()
   }
 }
 
-/// Czyszczenie pamięci zachowań.
-void Reset_action_memories()
-{
-	for(unsigned v=0;v<SIDE;v++)
-	{
-		for(unsigned h=0;h<SIDE;h++)
-		{
-			HonorAgent::World[v][h].LastDecision(true);	//Zapamiętanie referencji do agenta
-		}
-	}
-}
+// OBSŁUGA CZYSZCZENIA POŁĄCZEŃ. Ważna zwłaszcza przy powtórzeniach.
+//*/////////////////////////////////////////////////////////////////////////////////////////
 
 /// Usuwanie połączeń z zarejestrowanymi sąsiadami
 void DeleteAllConnections()
@@ -498,61 +468,6 @@ void DeleteAllConnections()
 		   HonorAgent& Ag=HonorAgent::World[y][x];	//Zapamiętanie referencji do agenta
 		   Ag.forgetAllNeigh(); //Bezwarunkowe zapomnienie
 		}
-}
-
-// FAMILY RELATIONS
-//*/////////////////////////////////////////////////////////////////////////////////////////
-
-/// Czy ten "Inny" należy do "rodziny" danego agenta.
-/// Przy okazji sprawdzenia ustalamy "Ojca chrzestnego" (Cappo) na później
-bool    HonorAgent::IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int MaxLevel) //=2
-{
-	if(MaxLevel>0) //Jak jeszcze nie szczyt zadanej hierarchii, to szuka ojca
-	 for(unsigned i=0;i<NeighSize();i++)
-	  if(Neighbourhood[i].Parent==1) //Jeżeli ma ojca to idziemy w górę
-	  {
-		 HonorAgent& Rodzic=World[Neighbourhood[i].Y][Neighbourhood[i].X];
-		 Cappo=&Rodzic; //Może "Rodzic" to zmieni, ale jak nie to już znaleziony!
-		 return  Rodzic.IsMyFamilyMember(Inny,Cappo,MaxLevel-1);  //REKURENCJA!
-	  }
-
-	// Jak sprawdzenie nie poszło, z tego czy innego powodu, w górę to może nadal szukać:
-	if(this==&Inny) //On sam okazał się szukanym!
-			return true;
-
-    //Jest najwyższym ojcem, teraz może szukać potomków...
-	for(unsigned j=0;j<NeighSize();j++)
-	 if(Neighbourhood[j].Child==1) //Jest dzieckiem
-	 {
-		HonorAgent& Dziecko=World[Neighbourhood[j].Y][Neighbourhood[j].X];
-		bool res=Dziecko.IsMyFamilyMember(Inny,Cappo,-1);  //-1 zabezpiecza przed dalszą REKURENCJĄ
-		if(res)
-			return true;
-	 }
-
-	// Nigdzie nie znalazł. To znaczy, że w jego pod-drzewie nie ma.
-	return false;
-}
-
-/// Rodzinna zmiana reputacji. Dla siebie, oraz dla dzieci rekurencyjnie
-void    HonorAgent::change_reputation_thru_family(double Delta)
-{
-	if(Delta>0) //Wzrost
-	{
-		HonorFeiRep+=(1-HonorFeiRep)*Delta;       	                                             assert(HonorFeiRep<=1);
-	}
-	else       //Spadek
-	{
-		HonorFeiRep-=HonorFeiRep*fabs(Delta);                                                 assert(0<=HonorFeiRep);
-													                                             assert(HonorFeiRep<=1);
-	}
-	// A teraz dla dzieci
-	for(unsigned j=0;j<NeighSize();j++)//Czy jest może ojcem? Trzeba szukać potomków
-	 if(Neighbourhood[j].Child==1) //Jest dzieckiem
-	 {
-		HonorAgent& Dziecko=World[Neighbourhood[j].Y][Neighbourhood[j].X];
-		Dziecko.change_reputation_thru_family(Delta); //REKURENCJA W DLA RODZINY
-	 }
 }
 
 
@@ -566,6 +481,31 @@ HonorAgent::Decision HonorAgent::LastDecision(bool clean)
 	Decision Tmp=MemOfLastDecision;
 	if(clean) MemOfLastDecision=NOTHING;
 	return Tmp;
+}
+
+/// Czyszczenie pamięci zachowań.
+void Reset_action_memories()
+{
+    for(unsigned v=0;v<SIDE;v++)
+    {
+        for(unsigned h=0;h<SIDE;h++)
+        {
+            HonorAgent::World[v][h].LastDecision(true);	//Zapamiętanie referencji do agenta
+        }
+    }
+}
+
+/// Dodaje sąsiada o określonych współrzędnych w świecie
+bool HonorAgent::addNeigh(unsigned x,unsigned y)
+{
+    if(HowManyNeigh<Neighbourhood.get_size()) //Czy jest jeszcze miejsce wokół?
+    {
+        Neighbourhood[HowManyNeigh].X=x;
+        Neighbourhood[HowManyNeigh].Y=y;
+        HowManyNeigh++;
+        return true;
+    }
+    else return false;
 }
 
 /// Ile ma zarejestrowanych sąsiadów
@@ -601,24 +541,112 @@ const HonorAgent::LinkTo* HonorAgent::Neigh(unsigned i)
 		else return NULL;
 }
 
-/// Dodaje sąsiada o określonych współrzędnych w świecie
-bool HonorAgent::addNeigh(unsigned x,unsigned y)
+/// Ustala czy pierwszy czy drugi agent zwycięży w konfrontacji
+/// WAŻNE UPROSZCZENIE: Zawsze któryś musi zwyciężyć, co nie jest realistyczne -
+bool      HonorAgent::firstWin(HonorAgent& In,HonorAgent& Ho)
 {
-   if(HowManyNeigh<Neighbourhood.get_size()) //Czy jest jeszcze miejsce wokół?
-   {
-	Neighbourhood[HowManyNeigh].X=x;
-	Neighbourhood[HowManyNeigh].Y=y;
-	HowManyNeigh++;
-	return true;
-   }
-   else return false;
+    if( In.Power*(1+DRAND())  >  Ho.Power*(1+DRAND()) ) //DRAND() --> random number from 0 to 1
+        return true;
+    else
+        return false;
 }
 
-/// Pola statyczne klasy HonorAgent
-bool 	HonorAgent::CzyTorus=false; ///< Topologia świata
-unsigned HonorAgent::licznik_zyc=0; ///< Ile żywych agentów
+/// Spadek siły z zabezpieczeniem zakresu
+void      HonorAgent::lost_power(double delta)
+{                                  					                                                   assert(Power<=1);
+    delta=fabs(delta);
+    Power*=(1-delta);
+    if(Power<0)
+        Power=0;     //To be sure...
+}
 
-wb_dynmatrix<HonorAgent> HonorAgent::World; ///< ŚWIAT AGENTÓW
+/// Wzrost lub spadek reputacji z zabezpieczeniem zakresu.
+/// Jak MAFIAHONOR i gość jest honorowy to zmienia się tak samo całej rodzinie!
+void    HonorAgent::change_reputation(double Delta,HonorAgent& Powod,int level)//level==0
+{                                                                                        //Sam siebie nie może atakować!
+                                                                                        assert(this!=&Powod);
+                                                                                        assert(0<=HonorFeiRep);
+                                                                                        assert(HonorFeiRep<=1);
+#ifdef HONOR_WITHOUT_REPUTATION //For "null hipothesis" tests
+    if(this->Honor==1) //Honor agent
+	 {
+		return; //nothing to do
+	 }
+#endif
+    HonorAgent* Cappo=NULL; //Przy okazji sprawdzenia, czy ktoś jest w tej rodzinie, ustalamy "Ojca chrzestnego".
+    if(&Powod!=NULL && MAFIAHONOR && !IsMyFamilyMember(Powod,Cappo) )//Jeżeli działa honor rodzinny to ...
+    {
+        if(Cappo==NULL) //Nie ma żyjącego ojca. Tu ślad się urywa.
+            Cappo=this;
+        Cappo->change_reputation_thru_family(Delta); //Ale może mieć dzieci...
+    }
+    else
+    if(Delta>0) //Wzrost
+    {
+        HonorFeiRep+=(1-HonorFeiRep)*Delta;       	                                             assert(HonorFeiRep<=1);
+    }
+    else       //Spadek
+    {
+        HonorFeiRep-=HonorFeiRep*fabs(Delta);                                                 assert(0<=HonorFeiRep);
+                                                                                                 assert(HonorFeiRep<=1);
+    }
+}
+
+// FAMILY RELATIONS (not used in paper from 2015)
+//*/////////////////////////////////////////////////////////////////////////////////////////
+
+/// Czy ten "Inny" należy do "rodziny" danego agenta.
+/// Przy okazji sprawdzenia ustalamy "Ojca chrzestnego" (Cappo) na później
+bool    HonorAgent::IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int MaxLevel) //=2
+{
+    if(MaxLevel>0) //Jak jeszcze nie szczyt zadanej hierarchii, to szuka ojca
+        for(unsigned i=0;i<NeighSize();i++)
+            if(Neighbourhood[i].Parent==1) //Jeżeli ma ojca to idziemy w górę
+            {
+                HonorAgent& Rodzic=World[Neighbourhood[i].Y][Neighbourhood[i].X];
+                Cappo=&Rodzic; //Może "Rodzic" to zmieni, ale jak nie to już znaleziony!
+                return  Rodzic.IsMyFamilyMember(Inny,Cappo,MaxLevel-1);  //REKURENCJA!
+            }
+
+    // Jak sprawdzenie nie poszło, z tego czy innego powodu, w górę to może nadal szukać:
+    if(this==&Inny) //On sam okazał się szukanym!
+        return true;
+
+    //Jest najwyższym ojcem, teraz może szukać potomków...
+    for(unsigned j=0;j<NeighSize();j++)
+        if(Neighbourhood[j].Child==1) //Jest dzieckiem
+        {
+            HonorAgent& Dziecko=World[Neighbourhood[j].Y][Neighbourhood[j].X];
+            bool res=Dziecko.IsMyFamilyMember(Inny,Cappo,-1);  //-1 zabezpiecza przed dalszą REKURENCJĄ
+            if(res)
+                return true;
+        }
+
+    // Nigdzie nie znalazł. To znaczy, że w jego pod-drzewie nie ma.
+    return false;
+}
+
+/// Rodzinna zmiana reputacji. Dla siebie, oraz dla dzieci rekurencyjnie
+void    HonorAgent::change_reputation_thru_family(double Delta)
+{
+    if(Delta>0) //Wzrost
+    {
+        HonorFeiRep+=(1-HonorFeiRep)*Delta;       	                                             assert(HonorFeiRep<=1);
+    }
+    else       //Spadek
+    {
+        HonorFeiRep-=HonorFeiRep*fabs(Delta);                                                 assert(0<=HonorFeiRep);
+        assert(HonorFeiRep<=1);
+    }
+    // A teraz dla dzieci
+    for(unsigned j=0;j<NeighSize();j++) //Czy jest może ojcem? Trzeba szukać potomków
+        if(Neighbourhood[j].Child==1)   //Ten jest dzieckiem
+        {
+            HonorAgent& Dziecko=World[Neighbourhood[j].Y][Neighbourhood[j].X];
+            Dziecko.change_reputation_thru_family(Delta); //REKURENCJA W DLA RODZINY
+        }
+}
+
 
 //*//////////////////////////////////////////////////////////////////////////////
 // Culture of honor evolution
