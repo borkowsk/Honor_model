@@ -63,7 +63,8 @@ unsigned population_growth=1; ///< How population growth? (SPOSOBY ROZMNAŻANIA)
 							  ///<  3 - as global distribution (3 - globalne, losowy agent z całości)
 
 /// Variable expected by SymShell
-int   WB_error_enter_before_clean=1; ///< Czy dać szanse operatorowi na poczytanie komunikatów końcowych
+int   WB_error_enter_before_clean=1; ///< Whether to give the operator a chance to read the end messages?
+                                     ///< (Czy dać szanse operatorowi na poczytanie komunikatów końcowych)
 
 //extern "C"                ///< Bo X11 z jakiegoś powodu nie chce tej zmiennej jako static
 //int   basic_line_width=1; ///< W sumie nie wiadomo po co to???
@@ -71,7 +72,7 @@ int   WB_error_enter_before_clean=1; ///< Czy dać szanse operatorowi na poczyta
 /// USAGE: Example parameter list:
 /// (UŻYCIE: Przykładowa lista parametrów)
 /// honor POLICEEF=0 BULLYPR=.25 HONORPR=.11 CALLPRP=.22 MAXSTEP=10000 VISSTEP=10 GROWMODE=1 REPETITIONS=10
-///
+
 /// LOG ZMIAN (for english version see changelog.md)
 ///
 /// * 1.00    - oczyszczona wersja do ostatecznej publikacji na GitHub'ie
@@ -147,25 +148,31 @@ int   WB_error_enter_before_clean=1; ///< Czy dać szanse operatorowi na poczyta
 /// \category OTHER GLOBAL PROPERTIES OF THE WORLD (INNE GLOBALNE WŁAŚCIWOŚCI ŚWIATA)
 //*////////////////////////////////////////////////////////////////////////////////////////
 
-//Jak bardzo osłabieni umierają (0 - brak selekcji w ogóle)
+/// How weakened they die (0 - no selection at all)
+/// Jak bardzo osłabieni umierają (0 - brak selekcji w ogóle)
 FLOAT    USED_SELECTION=0.20; ///< Default: 0.10;
 
-// Jak łatwo można zginąć z przyczyn niespołecznych, np. choroba, wypadek itp.
-// JAK 0 TO SĄ "ELFY" - nie umierają, ale mogą ginąć.
+/// How easy it is to die from non-social causes, e.g. illness, accident, etc.
+/// HOW 0 ARE "ELVES" - they don't die, but they can die.
+/// (Jak łatwo można zginąć z przyczyn niespołecznych, np. choroba, wypadek itp.
+/// JAK 0 TO SĄ "ELFY" - nie umierają, ale mogą ginąć.)
 FLOAT    MORTALITY=0.0009;    ///< Default: 0.01
 
-//Bazowy poziom agresji dla HONOROWYCH
+/// Base aggression level for HONORARY agents
+/// (Bazowy poziom agresji dla HONOROWYCH)
 FLOAT    HONOR_AGRESSION=0.01250; ///< Default: 0.015;
 
-///< POZIOM PRZYPADKOWEJ AGRESJI AGRESYWNYCH (bez kalkulacji kto silniejszy!)
+/// PROBABILITY LEVEL OF ACCIDENTAL AGGRESSIVE AGGRESSION. Basic, that is beyond the calculation who is stronger!
+/// (POZIOM PRAWD. PRZYPADKOWEJ AGRESJI AGRESYWNYCH. Bazowy, czyli poza kalkulacją kto silniejszy!)
 FLOAT    AGRES_AGRESSION=0.01250;
 
-///< Jakie jest prawdopodobieństwo przypadkowej zamiany na zupełnie innego
+/// What is the probability of accidentally changing to a completely different one
+/// (Jakie jest prawdopodobieństwo przypadkowej zamiany na zupełnie innego)
 FLOAT    EXTERNAL_REPLACE=0.0001;
 
-///< Czy reputacja przenosi się na członków rodziny.
+///< Does reputation transfer to family members. (Czy reputacja przenosi się na członków rodziny)
 ///< \note
-///< NIE UŻYWANE W ARTYKULE z 2015.
+///< NOT USED IN THE 2015 ARTICLE. (NIE UŻYWANE W ARTYKULE z 2015)
 bool     MAFIAHONOR=false;
 
 #ifdef TESTING_RULE_LITERALS
@@ -174,29 +181,45 @@ FLOAT	 TEST_DIVIDER=1.0; ///< Służy do modyfikacji stałych liczbowych używan
                            ///< Ale może być też jako stała "rozliczana" podczas kompilacji
 #endif
 
-FLOAT    RECOVERY_POWER=0.005;  ///< Jaką część siły odzyskuje w kroku
+FLOAT    RECOVERY_POWER=0.005;  ///< How much strength does he regain in step. (Jaką część siły odzyskuje w kroku)
 
-bool     InheritMAXPOWER=false; ///< Czy nowi agenci dziedziczą (z szumem) max power po rodzicu?
-FLOAT    LIMITNOISE=0.3;        ///< Mnożnik szumu przy dziedziczeniu maksymalnej siły po rodzicu
+bool     InheritMAXPOWER=false; ///< Do new agents inherit max power, with hype, from a parent?
+                                ///< (Czy nowi agenci dziedziczą max power, z szumem, po rodzicu?)
+FLOAT    LIMITNOISE=0.3;        ///< Noise multiplier when inheriting the maximum strength from the parent.
+                                ///< (Mnożnik szumu przy dziedziczeniu maksymalnej siły po rodzicu)
 
-/// \category DEFINICJE ROZKŁADÓW WARTOŚCI DLA INDYWIDUALNYCH CECH AGENTÓW
+/// \category
+/// PARAMETERS FOR VALUE DISTRIBUTIONS FOR INDIVIDUAL AGENT FEATURES
+/// (PARAMETRY ROZKŁADÓW WARTOŚCI DLA INDYWIDUALNYCH CECH AGENTÓW)
 //*/////////////////////////////////////////////////////////////////////////////////
 
-/// Jak 1 to decyduje rozkład sterowany BULLISM_LIMIT
+/// What is the share of the aggressive. As 1 it is decided by BULLISM_LIMIT controlled distribution
+/// (Jaki jest udział agresywnych. Jak 1 to decyduje rozkład sterowany BULLISM_LIMIT)
 /// \note
-/// "-" jest markerem zafiksowania w trybie batch
-FLOAT    BULLI_POPUL=-0.25; ///< 0.2;//0.100;//Albo zero-jedynkowo.
+/// "-" is the value fix marker in batch mode
+/// ("-" jest markerem zafiksowania wartości w trybie batch)
+FLOAT    BULLI_POPUL=-0.25; ///< Epl.: 0.2;//0.100; //Or zero-one. As in the 2015 article.
 
-//Jaka część agentów populacji jest honorowa
-FLOAT	 HONOR_POPUL=0.25;  ///< 0.10;//.17;0.33;
+/// What proportion of the agents of the population is honorable
+/// (Jaka część agentów populacji jest honorowa)
+FLOAT	 HONOR_POPUL=0.25;  ///< Epl.: 0.10;//.17;0.33;
 
-//Jaka część agentów wzywa policje, zamiast się poddawać
-FLOAT    CALLER_POPU=0.25;  ///< 0.10;//.17;
+/// How many agents call the police instead of giving up
+/// (Jaka część agentów wzywa policje, zamiast się poddawać)
+FLOAT    CALLER_POPU=0.25;  ///< Epl.: 0.10;//.17;
 
-FLOAT    POLICE_EFFIC=0.05; ///< 0.05;//0.33;0.5//0.650;//0.950;
+/// Effectiveness of Police Operations.
+/// (Efektywność działań policji)
+FLOAT    POLICE_EFFIC=0.05; ///< Epl.: 0.05;//0.33;0.5//0.650;//0.950;
 
-//Z jakim prawdopodobieństwem wezwana policja obroni agenta
-bool     ONLY3STRAT=false;  ///< Czy nie używamy strategii "racjonalnej"?
+/// Are we not using a "rational" strategy or only three basic ones?
+/// (Czy nie używamy strategii "racjonalnej" czy tylko trzech podstawowych)
+bool     ONLY3STRAT=false;
+
+//////////////////////////////////////////
+/// ONLY POLISH COMMENTS BELOW !!!!!!!!!!!
+//////////////////////////////////////////
+
 
 // Parametry eksploracji przestrzeni parametrów
 //*////////////////////////////////////////////////////
@@ -414,7 +437,9 @@ void Parameters_dump(ostream& o,const char* SEP="\t",const char* ENDL="\n",bool 
 
 	 if(BULLI_POPUL>=1) //... CO TO?         TODO?
 	 {                                                                          assert("Dead code called?"==NULL);
-	  o<<"FLOAT"<<SEP<<"BULLISM_LIMIT"<<SEP<<BULLISM_LIMIT<<ENDL;//Maksymalny mo�liwy bulizm.
+	  o<<"FLOAT"<<SEP<<"BULLISM_LIMIT"
+       //<<SEP<<BULLISM_LIMIT
+       <<ENDL; //We use the maximum possible bulism. (Używamy maksymalny możliwy bulizm.)
 	 }
 	 else
 	 {
@@ -491,7 +516,7 @@ int main(int argc,const char* argv[])
 		"        "<<endl
 		<<endl;
 	cout<<"Use -help for graphics setup information,\nor HELP for information about available parameters."<<endl;
-    
+
 	if(OptionalParameterBase::parse_options(argc,argv,Parameters,sizeof(Parameters)/sizeof(Parameters[0])))
 	{
 			exit(222);
