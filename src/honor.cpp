@@ -216,17 +216,23 @@ FLOAT    POLICE_EFFIC=0.05; ///< Epl.: 0.05;//0.33;0.5//0.650;//0.950;
 /// (Czy nie używamy strategii "racjonalnej" czy tylko trzech podstawowych)
 bool     ONLY3STRAT=false;
 
-//////////////////////////////////////////
-/// ONLY POLISH COMMENTS BELOW !!!!!!!!!!!
-//////////////////////////////////////////
 
 
-// Parametry eksploracji przestrzeni parametrów
-//*////////////////////////////////////////////////////
-bool  Compensation_mode=true; ///< Czy przestrzeń gdzie Honorowi i CallPolice, albo Agresywni i Honorowi uzupełniają się do PROP_MAX
-							  ///< Ma sens tylko dla zafiksowanych pozostałych
 
-/// \category Kroki dla eksploracji przestrzeni parametrów
+// Parameters of exploration of the model state space (Parametry eksploracji przestrzeni stanów modelu)
+//*/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Is a space where Honor and CallPolice,
+/// or Aggressive and Honorary complement PROP_MAX
+/// Only makes sense for fixed proportions of others.
+/// (Czy przestrzeń gdzie Honorowi i CallPolice,
+/// albo Agresywni i Honorowi uzupełniają się do PROP_MAX
+/// Ma sens tylko dla zafiksowanych pozostałych)
+bool  Compensation_mode=true;
+
+/// \category Steps for exploring the parameter space.
+/// (Kroki dla eksploracji przestrzeni parametrów)
+//*///////////////////////////////////////////////////////
 FLOAT POLICE_EFFIC_STEP=0.05;
 FLOAT POLICE_EFFIC_MAX=1;
 FLOAT POLICE_EFFIC_MIN=0;
@@ -239,46 +245,65 @@ FLOAT PROPORTION_STEP=0.05;
 FLOAT PROPORTION_MAX=1.0/3.0;
 FLOAT PROPORTION_MIN=0.0;
 
-/// \category Sterowanie statystykami i powtórzeniami
+/// \category Control of stats and repetitions
+/// (Sterowanie statystykami i powtórzeniami)
 //*///////////////////////////////////////////////////////
-unsigned REPETITION_LIMIT=1; ///< 10 - Ile ma zrobić powtórzeń tego samego eksperymentu;
-unsigned RepetNum=1;         ///< Która to kolejna repetycja?  - NIE ZMIENIAĆ RĘCZNIE!
+unsigned REPETITION_LIMIT=1;  ///< How many repetitions of the same experiment should be done
+                              ///< (Ile ma zrobić powtórzeń tego samego eksperymentu)
+unsigned RepetNum=1;          ///< Which is the next repeat? - DO NOT CHANGE MANUALLY!
+                              ///< (Która to kolejna repetycja?  - NIE ZMIENIAĆ RĘCZNIE!)
 
-unsigned STOP_AFTER=60000;   ///< Po jakim czasie staje automatycznie.
-unsigned STAT_AFTER=0;       ///< Po jakim czasie zacząć zliczać końcowe statystyki.
-unsigned PREVSTEP=80;    ///< Ile kroków przed główną statystyką wyliczać poprzedni stan dla wariacji.
-unsigned EveryStep=50;   ///< Częstotliwość wizualizacji i zapisu do logu.
-					     ///< Ujemne oznacza tryb automatycznej inkrementacji.
-unsigned DumpStep=10000; ///< Częstość zrzutów stanów agentów.
+unsigned STOP_AFTER=60000;   ///< After what time the simulation ends automatically.
+                             ///< (Po jakim czasie symulacja kończy się staje automatycznie.)
+unsigned STAT_AFTER=0;       ///< After what time to start counting the final statistics.
+                             ///< (Po jakim czasie zacząć zliczać końcowe statystyki)
+unsigned PREVSTEP=80;    ///< How many steps before the main statistic to compute the previous state for a variation.
+                         ///< (Ile kroków przed główną statystyką wyliczać poprzedni stan dla wariacji)
+unsigned EveryStep=50;   ///< The frequency of visualization and logging. Negative means auto-increment mode.
+                         ///< (Częstotliwość wizualizacji i zapisu do logu. Ujemne oznacza tryb automatycznej inkrementacji)
+unsigned DumpStep=10000; ///< Agent world state dump rate.
+                         ///< Częstość zrzutów stanu całego świata agentów.
 
-/// \category Parametry techniczne sterujące wizualizacją i wydrukami
+/// \category Technical parameters controlling visualization and printouts
+/// (Parametry techniczne sterujące wizualizacją i wydrukami)
 //*////////////////////////////////////////////////////////////////////////////////////
-unsigned VSIZ=9; ///< Maksymalny rozmiar boku agenta w wizualizacji kompozytowej
-unsigned SSIZ=2; ///< Bok agenta w wizualizacji uzupełniającej (majej)
-bool  ConsoleLog=true;    ///< Czy używa logowania zdarzeń na konsoli.
-                          ///< Ważne dla startu, potem się da przełączać
-bool  VisShorLinks=false; ///< Wizualizacja bliskich link�w
-bool  VisFarLinks=false;  ///< Wizualizacja dalekich
-bool  VisAgents=true;     ///< Wizualizacja właściwości agentów
-bool  VisReputation=false; ///< Czy robić obwódki z reputacji agentów
-bool  VisDecision=false;   ///< Czy wizualizować ostatnią decyzję?
-bool  dump_screens=false;
-bool  BatchPlotPower=false;   ///< Czy w trakcie wyświetlać wartość MnPower czy jednak MnProportions
-bool  Batch_true_color=false; ///< Czy skale kolorów true-color czy 256 kolorów tęczy
+unsigned VSIZ=9; ///< The maximum size of the agent side in a composite visualization
+                 ///< (Maksymalny rozmiar boku agenta w wizualizacji kompozytowej)
+unsigned SSIZ=2; ///<Agent side in complementary (small) visualization
+                 ///< Bok agenta w wizualizacji uzupełniającej (małej)
 
-/// \category Nazwy plików itp.
+bool  ConsoleLog=true;    ///< Whether it uses console event logging. Important for the start, then it can be switched.
+                          ///< (Czy używa logowania zdarzeń na konsoli. Ważne dla startu, potem się da przełączać)
+bool  VisShorLinks=false; ///< Do close links visualization? (Czy wizualizacja bliskich linków)
+bool  VisFarLinks=false;  ///< Do you visualize far links? (Czy wizualizacja dalekich linków)
+bool  VisAgents=true;     ///< Need visualize the properties of agents? (Czy wizualizacja właściwości agentów)
+bool  VisReputation=false; ///< Is it intended to outline the agents' reputation as an outline? (Czy robić obwódki z reputacji agentów)
+bool  VisDecision=false;   ///< Is it supposed to visualize the final decision? (Czy wizualizować ostatnią decyzję)
+
+bool  BatchPlotPower=false;   ///< Should it display the value of MnPower in batches or MnProportions?
+                              ///< (Czy wyświetlać w batchach wartość MnPower czy jednak MnProportions?)
+bool  Batch_true_color=false; ///< Whether true-color color scales or 256 colors of the rainbow?
+                              ///< (Czy skale kolorów true-color czy 256 kolorów tęczy)
+
+bool  dump_screens=false; ///< Should it take regular screenshots?
+                          ///< (Czy robić regularne zrzuty ekranów)
+
+/// \category File names etc.
+/// (Nazwy plików itp.)
 //*///////////////////////////////////////////////////////
 wb_pchar LogName("HonorXXX"); ///< File name for log stream
 wb_pchar DumpNam("HonorXXX"); ///< File name for dump stream
 string  Comment; ///< Output files comment
 
-/// \category INNE
+/// \category others
+/// (INNE)
 //*/////////////////////
 
-/// USTAWIENIA DLA LICZB LOSOWYCH
-long int RandSeed=-1; ///< Ewentualny zasiew liczby losowej. Jak == 0 to brany z funkcji time()
+/// SETTINGS FOR RANDOM NUMBERS (USTAWIENIA DLA LICZB LOSOWYCH)
+long int RandSeed=-1; ///< Possible seeding of a random number. How == 0 is taken from the function time ()
+                      ///< (Ewentualny zasiew liczby losowej. Jak == 0 to brany z funkcji time() )
 
-/// Tabela parametrów wywołania
+/// Table of all possible calling parameters (Tabela możliwych parametrów wywołania)
 OptionalParameterBase* Parameters[]={ //sizeof(Parameters)/sizeof(Parameters[])
 new ParameterLabel("PARAMETERS FOR SINGLE SIMULATION"),
 new OptionalParameter<long>(RandSeed,1,0x01FFFFFF,"RANDSEED","Use, if you want the same simulation many times"),//Zasiewanie liczby losowej
@@ -489,25 +514,27 @@ void social_impact_step(wb_dynmatrix<HonorAgent>& World,double percent_of_MC=100
 }
 */
 
-/*  OGÓLNA FUNKCJA MAIN SymShella I TO CO JEJ POTRZEBNE   */
-/* ****************************************************** */
+/**   GENERAL SymShell MAIN FUNCTION AND WHAT IT NEEDS    **/
+/*  (OGÓLNA FUNKCJA MAIN SymShella I TO CO JEJ POTRZEBNE)  */
+/* ******************************************************* */
 void Help();
 void SaveScreen(unsigned step);
 void mouse_check(wb_dynmatrix<HonorAgent>& World);
 
-// Tryby interaktywny
-void fixed_params_mode();  ///< Tryb interakcyjny z pełną wizualizacją
+// Interactive mode (Tryb interaktywny)
+void fixed_params_mode();  // Interactive mode with full visualization (Tryb interakcyjny z pełną wizualizacją)
 
-// Tryby analizy przestrzeni parametrów
-void walk_params_sele();   ///< Batch: selekcja vs efektywność policji
-void walk_params_prop();   ///< Batch: honorowi/policyjni vs efektywność policji
-void walk_honor_vs_agrr(); ///< Batch: honorowi/agresywni vs selekcja
+// Parameter space analysis modes (Tryby analizy przestrzeni parametrów)
+void walk_params_sele();   // Batch: selection vs. police efficiency (selekcja vs efektywność policji)
+void walk_params_prop();   // Batch: honorary & police lovers vs. police efficiency (honorowi/policyjni vs efektywność policji)
+void walk_honor_vs_agrr(); // Batch: honorary & aggressive vs. selection (honorowi i agresywni vs selekcja)
 
-// Funkcje statystyczne
+// Statistical functions etc. (Funkcje statystyczne itp.)
 void CalculateStatistics(wb_dynmatrix<HonorAgent>& World);
 void dump_step(wb_dynmatrix<HonorAgent>& World,unsigned step);
 void save_stat();
 
+/// Of course, the main function of the program
 int main(int argc,const char* argv[])
 {
 	cout<<MODELNAME<<" v.:"<<VERSIONNUM<<" PID:"<<(getpid())<<" "<<endl<<
@@ -594,9 +621,10 @@ int main(int argc,const char* argv[])
 	return 0;
 }
 
-//  WIZUALIZACJA
+//   VISUALISATION (WIZUALIZACJA)
 //*///////////////////////////////////////////////////////////////////////////
 
+/// Redraw the entire screen.
 void replot(wb_dynmatrix<HonorAgent>& World)
 {
     int old=mouse_activity(0);
@@ -609,8 +637,8 @@ void replot(wb_dynmatrix<HonorAgent>& World)
     //double RealMaxReputation=0;
     //double SummReputation=0;
 
-    // DRUKOWANIE POWIĄZAŃ
-    //*///////////////////
+    // PRINTING OF LINKS/ASSOCIATIONS (DRUKOWANIE POWIĄZAŃ)
+    //*///////////////////////////////////////////////////////
     int VSIZ2=VSIZ/2;
 
     if(VisFarLinks || VisShorLinks)
@@ -641,8 +669,8 @@ void replot(wb_dynmatrix<HonorAgent>& World)
 
     set_pen_rgb(75,75,75,0,SSH_LINE_SOLID); // Ustala aktualny kolor linii za pomocą składowych RGB
 
-    // DRUKOWANIE DANYCH DLA WĘZŁÓW
-    //*///////////////////////////////
+    // PRINTING DATA FOR NODES (DRUKOWANIE DANYCH DLA WĘZŁÓW)
+    //*///////////////////////////////////////////////////////////
     for(unsigned v=0;v<SIDE;v++)
     {
         for(unsigned h=0;h<SIDE;h++)
@@ -730,7 +758,7 @@ void replot(wb_dynmatrix<HonorAgent>& World)
     mouse_activity(old);
 }
 
-/// Rysowanie tablic wynikowych
+/// Drawing result matrices. (Rysowanie tablic wynikowych)
 void PlotTables(const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 				const char* Name2,wb_dynmatrix<FLOAT>& Tab2,
 				const char* Name3,wb_dynmatrix<FLOAT>& Tab3,
@@ -835,7 +863,8 @@ void PlotTables(const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 	 flush_plot();
 }
 
-/// Zapisywanie tabel wynikowych do strumienia
+/// Writing result matrices to the stream.
+/// (Zapisywanie tabel wynikowych do strumienia)
 void Write_tables(ostream& o,const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 							const char* Name2,wb_dynmatrix<FLOAT>& Tab2,const char* TAB="\t")//enum  {NO_BAT=0,BAT_SELECTION=1,BAT_HONORvsCPOLL=2,BAT_HONORvsAGRR=3} batch_sele;//Czy tryb przeszukiwania szuka po proporcjach czy po sile selekcji?
 {
@@ -876,7 +905,7 @@ void Write_tables(ostream& o,const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 	}
 	o<<X<<TAB<<"!!!"<<endl;
 
-	//NAGŁÓWKI WIERSZY i ZAWARTOŚĆ TABEL
+	//ROW HEADERS and CONTENTS OF TABLES (NAGŁÓWKI WIERSZY i ZAWARTOŚĆ TABEL)
 	Y=0;
 	switch(batch_sele){ //Czy tryb przeszukiwania szuka po proporcjach, czy po sile selekcji?
 		case BAT_HONORvsCPOLL:
@@ -946,7 +975,8 @@ void Write_tables(ostream& o,const char* Name1,wb_dynmatrix<FLOAT>& Tab1,
 		o << TAB << TAB << Name2 << endl;
 }
 
-/// Tryb analizy przestrzeni parametrów - wydajność policji (POLL_EFF) i PROPORTION
+/// Parameter space analysis mode - police performance (POLL_EFF) and PROPORTION.
+/// (Tryb analizy przestrzeni parametrów - wydajność policji (POLL_EFF) i PROPORTION)
 void walk_params_prop()
 {
    unsigned X = (POLICE_EFFIC_MAX - POLICE_EFFIC_MIN)/ POLICE_EFFIC_STEP + 1;
@@ -1126,7 +1156,8 @@ void walk_params_prop()
    }
 }
 
-/// Tryb analizy przestrzeni parametrów - wydajność policji (POLL_EFF) i SELECTION
+/// Parameter space analysis mode - police performance (POLL_EFF) and SELECTION
+/// (Tryb analizy przestrzeni parametrów - wydajność policji (POLL_EFF) i SELECTION)
 void walk_params_sele()
 {
    unsigned X=(POLICE_EFFIC_MAX-POLICE_EFFIC_MIN)/POLICE_EFFIC_STEP + 1;
@@ -1335,7 +1366,8 @@ void walk_params_sele()
    }
 }
 
-/// Tryb analizy przestrzeni parametrów - SELECTION i RATIO Agresywnych do Honorowych
+/// Parameter space analysis mode - SELECTION and RATIO Aggressive to Honorary
+/// (Tryb analizy przestrzeni parametrów - SELECTION i RATIO Agresywnych do Honorowych)
 void walk_honor_vs_agrr()
 {
    unsigned X = (PROPORTION_MAX - PROPORTION_MIN) / PROPORTION_STEP + 1;
@@ -1508,10 +1540,11 @@ void walk_honor_vs_agrr()
    }
 }
 
-/// Tryb interakcyjny z pełną wizualizacją
+/// Interactive mode with full visualization
+/// (Tryb interakcyjny z pełną wizualizacją)
 void fixed_params_mode()
 {
-	HonorAgent::World.alloc(SIDE,SIDE); //Początek czyli alokacja agentów świata w static tablicy agentów świata
+	HonorAgent::World.alloc(SIDE,SIDE); //Początek, czyli alokacja agentów świata w static tablicy agentów świata
 
 	InitConnections(SIDE*SIDE*OUTFAR_LINKS_PER_AGENT);
 	InitAtributes(SIDE*SIDE);
@@ -1639,7 +1672,7 @@ void fixed_params_mode()
 	}
 }
 
-/// Print runtime help
+/// Print runtime help. (Drukuj pomoc czasu wykonania)
 void Help()
 {
 	cout<<"POSSIBLE COMMANDS FOR GRAPHIC WINDOW:"<<endl
@@ -1701,7 +1734,8 @@ void mouse_check(wb_dynmatrix<HonorAgent>& World)
 	}
 }
 
-/// Zrzut ekranu z numerem kroku i parametrami wywołania
+/// Screenshot with step number and calling parameters short.
+/// (Zrzut ekranu z numerem kroku i parametrami wywołania)
 void SaveScreen(unsigned step)
 {
 	wb_pchar Filename;
@@ -1710,8 +1744,11 @@ void SaveScreen(unsigned step)
 	dump_screen(Filename.get_ptr_val());
 }
 
-//  Liczenie statystyk. Powinno być w osobnym pliku (TODO)
+///  Counting statistics. It should be in a separate source file (TODO)
+///  (Liczenie statystyk. Powinno być w osobnym pliku (TODO) )
 //*/////////////////////////////////////////////////////////////////////////////
+
+/// \category Statistical variables (Zmienne statystyczne)
 double MeanFeiReputation=0;
 double MeanCallPolice=0;
 double MeanPower=0;
@@ -1721,21 +1758,26 @@ double MeanHonor=0;
 extern unsigned NumberOfKilled;
 extern unsigned NumberOfKilledToday;
 
-/// Liczniki statystyczne z wbudowanym N
-const int NumOfCounters=4; ///< I RACZEJ TYLE POWINNO ZOSTAĆ ZE WZGLĘDU NA WIZUALIZACJE ITP
-zliczacz  MnStrenght[NumOfCounters]; ///< Liczniki siły skrajnych typów agentów
+/// Statistical counters with built-in N
+/// (Liczniki statystyczne z wbudowanym N)
+const int NumOfCounters=4;  ///< INITIAL SIZE. AND RATHER MUCH SHOULD BE DUE TO VISUALIZATIONS ETC...
+                            ///< (POCZĄTKOWY ROZMIAR. I RACZEJ TYLE POWINNO ZOSTAĆ ZE WZGLĘDU NA WIZUALIZACJE ITP.)
+zliczacz  MnStrenght[NumOfCounters]; ///< Strength statistics of agent types. (Statystyki siły skrajnych typów agentów.
 
-/// Nazwy liczników
+/// Statistics names with built-in N (Nazwy statystyk z wbudowanym N)
 const char* MnStrNam[NumOfCounters]={"MnAgresPw","MnHonorPw","MnPolicPw","MnOthrPwr"};
 
-/// \category Liczniki akcji dla wszystkich i dla grup
+/// Counters for all actions and for groups
+/// (Liczniki dla wszystkich akcji i dla grup)
 HonorAgent::Actions CoutersForAll;
 HonorAgent::Actions CoutersForBullys;
 HonorAgent::Actions CoutersForHonors;
 HonorAgent::Actions CoutersForCPolice;
 HonorAgent::Actions CoutersForRationals;
 
-/// Obliczanie statystyk świata
+/// \category Functions related to statistics
+
+/// Computing statistics of the world (Obliczanie statystyk świata)
 void CalculateStatistics(wb_dynmatrix<HonorAgent>& World)
 {
     unsigned N=SIDE*SIDE;
@@ -1810,7 +1852,7 @@ void CalculateStatistics(wb_dynmatrix<HonorAgent>& World)
     MeanHonor=ForHonor/N;
 }
 
-/// Zapisywanie obliczonych statystyk
+/// Saving calculated statistics (Zapisywanie obliczonych statystyk)
 void save_stat()
 {
     if(step_counter==0 && LastStep!=0 && RepetNum==1 ) //Tylko za pierwszym razem
@@ -1914,7 +1956,7 @@ void save_stat()
     }
 }
 
-/// Zapis informacji stanie w danym kroku
+/// Record of state information in a given step (Zapis informacji stanie w danym kroku)
 void dump_step(wb_dynmatrix<HonorAgent>& World,unsigned step)
 {
     const char TAB='\t';
@@ -1991,7 +2033,7 @@ void dump_step(wb_dynmatrix<HonorAgent>& World,unsigned step)
     Dumps<<endl; //Po całości
 }
 
-/// Drukowanie agenta do inspekcji
+/// Printing the agent for inspection (Drukowanie agenta do inspekcji)
 void PrintHonorAgentInfo(ostream& o,const HonorAgent& H)
 {
     o<<"Agent type:"<<H.AgentCultureStr().get()<<"\t\t";
