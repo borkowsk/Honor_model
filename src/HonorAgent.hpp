@@ -173,7 +173,7 @@ class HonorAgent
     //*///////////////////////////////////////////////////////////////////////////
 	bool    IsParent(unsigned i); //!< Is this neighbor is the parent (Czy dany sąsiad jest rodzicem)
 	bool    IsChild(unsigned i); //!< Is this neighbor is a child (Czy dany sąsiad jest dzieckiem)
-	bool    IsMyFamilyMember(HonorAgent& Inny,HonorAgent*& Cappo,int MaxLevel=2); //!< Is another "belongs to the family". By the way, we set the "Godfather" (Czy inny "należy do rodziny". Przy okazji ustalamy "Ojca chrzestnego")
+	bool    IsMyFamilyMember(HonorAgent& Other, HonorAgent*& Cappo, int MaxLevel=2); //!< Is another "belongs to the family". By the way, we set the "Godfather" (Czy inny "należy do rodziny". Przy okazji ustalamy "Ojca chrzestnego")
 	void    change_reputation_thru_family(double Delta); //!< Recursive change of the reputation of the agent down the best of 'Cappo' of the family (Rodzinna, rekurencyjna zmiana reputacji od agenta w dół najlepiej z "Cappo" rodziny)
 	void 	SmiercDona(); //!< removes family links (Usuwa powiązania rodzinne)
 	friend void PowiazRodzicielsko(HonorAgent& Rodzic,HonorAgent& Ag);  //!<  builds a family connections (buduje powiązanie rodzinne)
@@ -277,6 +277,41 @@ inline wbrtm::wb_pchar  HonorAgent::AgentCultureStr()  const
 
    return Pom;
 }
+
+// Declarations of global variables & functions for statistics
+//*////////////////////////////////////////////////////////////////////////
+extern double MeanFeiReputation;
+extern double MeanCallPolice;
+extern double MeanPower;
+extern double MeanAgres;
+extern double MeanHonor;
+
+extern unsigned NumberOfKilled;
+extern unsigned NumberOfKilledToday;
+
+extern HonorAgent::Actions CoutersForAll;
+extern HonorAgent::Actions CoutersForBullys;
+extern HonorAgent::Actions CoutersForHonors;
+extern HonorAgent::Actions CoutersForCPolice;
+extern HonorAgent::Actions CoutersForRationals;
+
+/// Struct for statistical counters
+struct zliczacz
+{
+    double summ;
+    unsigned N;
+
+    zliczacz():summ(0),N(0){}
+    void Reset(){summ=0;N=0;}
+
+    static void Reset(zliczacz t[],unsigned N)
+    {
+        for(unsigned i=0;i<N;i++)
+            t[i].Reset();
+    }
+};
+
+extern zliczacz  MnStrenght[]; ///< Liczniki siły skrajnych typów agentów
 
 // FOR FAMILIES VERSION - NOT USED FOR PAPER 2015
 //*//////////////////////////////////////////////////////////////////////
