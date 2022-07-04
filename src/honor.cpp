@@ -124,7 +124,7 @@ unsigned population_growth=1; ///< How population growth? (SPOSOBY ROZMNAŻANIA)
 
 
 
-/// \category INNE GLOBALNE WLASCIWOSCI SWIATA
+/// \category INNE GLOBALNE WŁAŚCIWOŚCI ŚWIATA
 bool     MAFIAHONOR=false; ///< Czy reputacja przenosi się na członków rodziny
 FLOAT    USED_SELECTION=0.20;///< Default: 0.10; //Jak bardzo przegrani umierają (0 - brak selekcji w ogóle)
 FLOAT    MORTALITY=0.0009;  ///< Default: 0.01 //Jak łatwo można zginąć z przyczyn niespołecznych, np. choroba, wypadek itp. JAK 0 TO SĄ "ELFY"
