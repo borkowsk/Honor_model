@@ -1,0 +1,58 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "@type": "SoftwareSourceCode",
+    "license": "https://spdx.org/licenses/CC-BY-NC-4.0",
+    "codeRepository": "https://github.com/borkowsk/Honor_model",
+    "dateCreated": "2012-01-01",
+    "datePublished": "2015-08-01",
+    "dateModified": "2022-07-03",
+    "downloadUrl": "https://github.com/borkowsk/",
+    "name": "honor model",
+    "version": "0.99",
+    "description": "Source code for paper:\n\nThe Evolutionary Basis of Honor Cultures\n\nDecember 2015Psychological Science 27(1):12-24 Follow journal\nDOI: 10.1177/0956797615602860\n\nWe implemented an agent-based model of honor, and our simulations showed that the reliability of institutions and toughness of the environment are crucial conditions for the evolution of honor cultures. Honor cultures survive when the effectiveness of the authorities is low, even in very tough environments. Moreover, the results show that honor cultures and aggressive cultures are mutually dependent in what resembles a predator-prey relationship described in the renowned Lotka-Volterra model. Both cultures are eliminated when institutions are reliable. These results have implications for understanding conflict throughout the world, where Western-based strategies are exported, often unsuccessfully, to contexts of weak institutional authority wherein honor-based strategies have been critical for survival. \n\n",
+    "applicationCategory": "Social Psychology",
+    "releaseNotes": "Most of the important comments in English",
+    "funding": "PNSC Grant 2011/03/B/HS6/05084",
+    "developmentStatus": "inactive",
+    "isPartOf": "https://www.researchgate.net/project/Complex-Social-Processes",
+    "referencePublication": "DOI: 10.1177/0956797615602860",
+    "funder": {
+        "@type": "Organization",
+        "name": "Polish National Science Centre"
+    },
+    "keywords": [
+        "cross-cultural differences",
+        "honor",
+        "aggressive behavior"
+    ],
+    "programmingLanguage": [
+        "C++"
+    ],
+    "runtimePlatform": [
+        "native"
+    ],
+    "operatingSystem": [
+        "Windows",
+        "Linux"
+    ],
+    "softwareRequirements": [
+        "C++ compiler, cmake, make",
+        "SymShellLight library from GitHub (https://github.com/borkowsk/SymShellLight.git)"
+    ],
+    "relatedLink": [
+        "https://www.researchgate.net/publication/284727943_The_Evolutionary_Basis_of_Honor_Cultures"
+    ],
+    "author": [
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0002-5793-688",
+            "givenName": "Wojciech",
+            "familyName": "Borkowski",
+            "email": "wborkowsk@gmail.com",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "University of Warsaw"
+            }
+        }
+    ]
+}
