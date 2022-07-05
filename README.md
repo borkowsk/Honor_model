@@ -14,4 +14,10 @@ If to any of the others, give the coffee to the author (https://www.paypal.com/p
 
 You need a SymshellLight library for building this project.
 
+## License
+
+CC-BY-NC-4.0
+
+https://spdx.org/licenses/CC-BY-NC-4.0.html
+
 
