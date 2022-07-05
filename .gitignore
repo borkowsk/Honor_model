@@ -35,10 +35,13 @@
 # Linux executables - specific for this repository
 *X11
 *SVG
-TESTS/RawTests/native/native
 
+# logs & other products
+*.log
+*.txt
 
 # IDE configs or cmake temporaries
+CMakeCache.txt
 *.cmake
 *.cbp
 CMakeFiles/

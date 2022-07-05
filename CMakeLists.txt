@@ -3,17 +3,22 @@
 # @Author: Wojciech Borkowski
 # @Coauthor: Andrzej Nowak
 #
-# Define WITHTOOLS if you want build helpers applications!
-#
+
 cmake_minimum_required(VERSION 2.9)
-set(WITHTOOLS 0)
+
 project(honor_model)
 
+# SymShellLight library is required for compilation. 
+# Enter path here.
 set(SYMSHELL "../../public/SymShellLight")
+
+# Define WITHTOOLS 1 , if you want build helpers applications!
+set(WITHTOOLS 0)
+
 add_subdirectory( ${SYMSHELL} ${SYMSHELL} )
 
 #if(WITHTOOLS)
-#   add_subdirectory( HELPERS/ )
+#   add_subdirectory( mapGen/ )
 #endif()
 
 include_directories( ${SYMSHELL} )
