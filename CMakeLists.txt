@@ -23,16 +23,35 @@ add_subdirectory( ${SYMSHELL} ${SYMSHELL} )
 
 include_directories( ${SYMSHELL} )
 
+
+
+IF (WIN32)
+
 add_executable( honor
                 "src/HonorAgent.cpp"
                 "src/honor.cpp"
 #windows only
-#               "src/symshmsc.rc"
-#               "src/symshwin.ico"
+               "src/symshmsc.rc"
+               "src/symshwin.ico"
                )
-
+               
 target_link_libraries( honor
      "-L${SYMSHELL}"
-     wbsyshX11 X11 Xpm
+     wbsyshLight
+     )         
+           
+ELSE()
+
+add_executable( honor
+                "src/HonorAgent.cpp"
+                "src/honor.cpp"
+               )
+               
+target_link_libraries( honor
+     "-L${SYMSHELL}"
+     wbsyshLight
+     X11 Xpm
      rt
      )
+     
+ENDIF()
