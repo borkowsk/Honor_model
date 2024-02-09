@@ -17,8 +17,9 @@ for f in *; do # * rozwija się do listy wszystkich plików/katalogów znajdują
     rm -f CMakeCache.txt
     rm -f Makefile
     rm -f cmake_install.cmake
-    rm -Rf CMakeFiles
+    rm -Rf CMakeFiles/
     rm -Rf cmake-build-*/
+	rm -Rf .vs/
 
     popd > /dev/null
   elif [ -f "$f" ]; then
@@ -33,6 +34,7 @@ rm -f Makefile
 rm -f cmake_install.cmake
 rm -Rf CMakeFiles
 rm -Rf cmake-build-*/
+rm -Rf .vs/
 
 #rm -f build.ninja
 #rm -f rules.ninja
