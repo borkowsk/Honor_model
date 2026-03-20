@@ -1,10 +1,11 @@
 # CMAKE configuration for HONOR simulation project
 ######################################################################
 # @authors: Wojciech Borkowski, Andrzej Nowak
-# @date: 2024-02-09 (last modifications)
+# @date: 2026-03-20 (last modifications)
 #
-project(honor_model)
 cmake_minimum_required(VERSION 3.3)
+
+project(honor_model)
 set(CMAKE_CXX_STANDARD 11) # See: https://matgomes.com/setting-cpp-standard-cmake/
 
 # Define WITHTOOLS if you want build helpers applications!
@@ -27,11 +28,11 @@ endif()
 
 # SymShellLight library is required for compilation. 
 # Enter path here.
-set(SYMSHELL "../SymShellLight" )
+set(SYMSHELL "../../public/symShellLight" )
 
 add_subdirectory( ${SYMSHELL} ${SYMSHELL} )
 
-include_directories( ${SYMSHELL} )
+include_directories( ${SYMSHELL}/INCL/ )
 
 if(WINDOWS) # only for WINDOWS
     add_executable( honor
