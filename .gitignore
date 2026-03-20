@@ -41,6 +41,8 @@
 *.txt
 
 # IDE configs or cmake temporaries
+public/
+build/
 CMakeCache.txt
 *.cmake
 *.cbp
