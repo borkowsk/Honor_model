@@ -11,6 +11,8 @@ If you are using this code for research purposes, please quote this article.
 If to any of the others, give the coffee to the author 
 (https://www.paypal.com/paypalme/wborkowsk)
 
+<img src="./docs/historical-bulding.gif"  width="200" title="Historical project">
+
 ## Compilation
 
 You need a __SymshellLight library__ for building this project.

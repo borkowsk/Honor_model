@@ -32,7 +32,7 @@ set(SYMSHELL "../../public/symShellLight" )
 
 add_subdirectory( ${SYMSHELL} ${SYMSHELL} )
 
-include_directories( ${SYMSHELL}/INCL/ )
+include_directories( ${SYMSHELL}/INCL/ ${SYMSHELL}/INCL/RTM_LIGHT/ )
 
 if(WINDOWS) # only for WINDOWS
     add_executable( honor
